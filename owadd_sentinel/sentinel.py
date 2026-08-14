@@ -236,7 +236,8 @@ class OWADDSentinel:
 
         # Train both on initial data (they start identical)
         if verbose:
-            print(f"[OWADD Sentinel] Training autoencoders ({self.initial_epochs} epochs)...")
+            n = self.initial_epochs
+            print(f"[OWADD Sentinel] Training autoencoders ({n} epochs)...")
         train_autoencoder(
             self._autoencoder_A, initial_data,
             epochs=self.initial_epochs, verbose=verbose

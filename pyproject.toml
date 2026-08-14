@@ -71,3 +71,8 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "RUF", "PLR"]
+ignore = [
+    "PLR0913",  # Too many arguments — acceptable for ML config classes
+    "PLR0917",  # Too many positional arguments — same reason
+    "RUF002",   # Ambiguous Unicode in docstrings — cosmetic only
+]
