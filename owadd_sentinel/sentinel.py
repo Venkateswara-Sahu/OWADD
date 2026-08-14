@@ -18,11 +18,12 @@ This is the only class users need to import for basic usage:
     print(result)
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import torch
-from dataclasses import dataclass, field
-from typing import Optional
 
+from owadd_sentinel.attribution import AttributionResult, DriftAttributor
 from owadd_sentinel.core.autoencoder import (
     Autoencoder,
     create_autoencoder_pair,
@@ -30,7 +31,6 @@ from owadd_sentinel.core.autoencoder import (
 )
 from owadd_sentinel.core.drift_detector import DriftDetector, DriftResult
 from owadd_sentinel.core.novelty_detector import NoveltyDetector, NoveltyResult
-from owadd_sentinel.attribution import DriftAttributor, AttributionResult
 
 
 @dataclass
@@ -62,7 +62,7 @@ class SentinelResult:
     drift_severity: float
     novelty_proportion: float
     n_novel: int
-    attribution: Optional[AttributionResult]
+    attribution: AttributionResult | None
     drift_result: DriftResult
     novelty_result: NoveltyResult
 
@@ -154,7 +154,7 @@ class OWADDSentinel:
 
     def __init__(
         self,
-        n_features: Optional[int] = None,
+        n_features: int | None = None,
         hidden_dim: int = 10,
         buffer_size: int = 1000,
         n_replications: int = 15,
@@ -162,7 +162,7 @@ class OWADDSentinel:
         drift_threshold: float = 0.3,
         novelty_threshold: float = 0.02,
         top_k_features: int = 5,
-        feature_names: Optional[list] = None,
+        feature_names: list | None = None,
         initial_epochs: int = 400,
         update_epochs: int = 50,
     ):
@@ -173,9 +173,9 @@ class OWADDSentinel:
         self.feature_names = feature_names
 
         # Will be initialized in .fit()
-        self._autoencoder_A: Optional[Autoencoder] = None
-        self._autoencoder_AKC: Optional[Autoencoder] = None
-        self._reference_data: Optional[np.ndarray] = None
+        self._autoencoder_A: Autoencoder | None = None
+        self._autoencoder_AKC: Autoencoder | None = None
+        self._reference_data: np.ndarray | None = None
 
         # Sub-components
         self._drift_detector = DriftDetector(

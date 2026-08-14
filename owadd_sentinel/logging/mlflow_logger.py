@@ -34,9 +34,11 @@ Usage:
 """
 
 import json
+from pathlib import Path
+
 import mlflow
 import mlflow.pytorch
-from pathlib import Path
+
 from owadd_sentinel.sentinel import SentinelResult
 
 
@@ -70,7 +72,7 @@ class MLflowLogger:
         self._run = None
         self._drift_count = 0
 
-    def start_run(self, params: dict = None) -> "MLflowLogger":
+    def start_run(self, params: dict | None = None) -> "MLflowLogger":
         """
         Start a new MLflow run and log initial parameters.
 
@@ -82,7 +84,7 @@ class MLflowLogger:
         self._run = mlflow.start_run(run_name=self.run_name)
         print(f"[MLflow] Run started: {self._run.info.run_id}")
         print(f"[MLflow] Experiment: {self.experiment_name}")
-        print(f"[MLflow] View at: mlflow ui  (then open http://localhost:5000)")
+        print("[MLflow] View at: mlflow ui  (then open http://localhost:5000)")
 
         if params:
             mlflow.log_params(params)
@@ -92,7 +94,7 @@ class MLflowLogger:
     def log_chunk(
         self,
         result: SentinelResult,
-        ground_truth_label: str = None,
+        ground_truth_label: str | None = None,
     ) -> None:
         """
         Log metrics for a single processed stream chunk.
@@ -163,4 +165,4 @@ class MLflowLogger:
         mlflow.log_metric("total_drifts_detected", self._drift_count)
         mlflow.end_run()
         print(f"[MLflow] Run ended. Total drifts detected: {self._drift_count}")
-        print(f"[MLflow] Run UI: mlflow ui  → http://localhost:5000")
+        print("[MLflow] Run UI: mlflow ui  → http://localhost:5000")
