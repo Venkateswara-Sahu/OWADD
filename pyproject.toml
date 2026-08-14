@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "owadd-sentinel"
+version = "0.1.0"
+description = "Production-ready unsupervised ML data drift detection with feature attribution, based on arXiv:2605.29834"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Venkateswara Sahu" }
+]
+keywords = ["concept-drift", "data-streams", "autoencoder", "novelty-detection", "mlops", "unsupervised"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.2.0",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100.0", "uvicorn>=0.22.0", "pydantic>=2.0.0"]
+dashboard = ["streamlit>=1.25.0", "plotly>=5.15.0"]
+mlflow = ["mlflow>=2.5.0"]
+kafka = ["confluent-kafka>=2.2.0"]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.0.285",
+    "jupyter>=1.0.0",
+]
+all = [
+    "owadd-sentinel[api,dashboard,mlflow,kafka,dev]"
+]
+
+[project.urls]
+Homepage = "https://github.com/Venkateswara-Sahu/OWADD"
+Repository = "https://github.com/Venkateswara-Sahu/OWADD"
+Documentation = "https://venkateswara-sahu.github.io/OWADD"
+"Bug Tracker" = "https://github.com/Venkateswara-Sahu/OWADD/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["owadd_sentinel*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311"]
+
+[tool.ruff]
+line-length = 88
