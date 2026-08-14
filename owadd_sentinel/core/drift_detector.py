@@ -17,11 +17,11 @@ Algorithm (from paper):
 7. On drift: reset buffer B and incrementally retrain autoencoder A.
 """
 
-import numpy as np
-from scipy import stats
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional
+
+import numpy as np
+from scipy import stats
 
 
 @dataclass

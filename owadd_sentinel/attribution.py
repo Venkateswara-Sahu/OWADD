@@ -20,10 +20,10 @@ This is the key NOVEL CONTRIBUTION of OWADD Sentinel over the base paper.
 It makes drift detection ACTIONABLE — engineers know exactly where to look.
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import torch
-from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -79,7 +79,7 @@ class DriftAttributor:
     def __init__(
         self,
         top_k: int = 5,
-        feature_names: Optional[list] = None,
+        feature_names: list | None = None,
     ):
         self.top_k = top_k
         self.feature_names = feature_names
@@ -115,7 +115,7 @@ class DriftAttributor:
         model,
         reference_data: np.ndarray,
         current_batch: np.ndarray,
-        feature_names: Optional[list] = None,
+        feature_names: list | None = None,
     ) -> AttributionResult:
         """
         Compute drift attribution by comparing per-feature errors.

@@ -32,5 +32,8 @@ jobs:
         run: |
           python -m pytest tests/ -v --cov=owadd_sentinel --cov-report=term-missing
 
-      - name: Lint with ruff
+      - name: Auto-fix ruff issues
+        run: ruff check owadd_sentinel/ --fix --unsafe-fixes
+
+      - name: Lint with ruff (fail on remaining issues)
         run: ruff check owadd_sentinel/

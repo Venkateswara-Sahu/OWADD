@@ -26,20 +26,20 @@ Quick Start
         print(result.novelty_proportion)   # % of unknown class samples
 """
 
-from owadd_sentinel.sentinel import OWADDSentinel
+from owadd_sentinel.attribution import DriftAttributor
+from owadd_sentinel.core.autoencoder import Autoencoder
 from owadd_sentinel.core.drift_detector import DriftDetector
 from owadd_sentinel.core.novelty_detector import NoveltyDetector
-from owadd_sentinel.core.autoencoder import Autoencoder
-from owadd_sentinel.attribution import DriftAttributor
+from owadd_sentinel.sentinel import OWADDSentinel
 
 __version__ = "0.1.0"
 __author__ = "Venkateswara Sahu"
 __paper__ = "arXiv:2605.29834"
 
 __all__ = [
-    "OWADDSentinel",
-    "DriftDetector",
-    "NoveltyDetector",
     "Autoencoder",
     "DriftAttributor",
+    "DriftDetector",
+    "NoveltyDetector",
+    "OWADDSentinel",
 ]

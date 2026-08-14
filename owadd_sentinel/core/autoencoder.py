@@ -18,10 +18,10 @@ Architecture (paper defaults):
   → ReLU → Linear(n_features)   [encoder + decoder as one Sequential]
 """
 
-import torch
-import torch.nn as nn
+
 import numpy as np
-from typing import Optional
+import torch
+from torch import nn
 
 
 class Autoencoder(nn.Module):

@@ -20,9 +20,10 @@ Algorithm 2 (from paper):
      known-class distribution.
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 from sklearn.neighbors import KernelDensity
-from dataclasses import dataclass
 
 
 @dataclass
