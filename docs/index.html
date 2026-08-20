@@ -4,622 +4,790 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vigil — Real-Time Network Drift Detection</title>
-  <meta name="description" content="Production-ready unsupervised concept drift detection for network traffic streams. No labels. No thresholds. Built on PyTorch, FastAPI, Kafka, and Airflow."/>
+  <meta name="description" content="Vigil detects concept drift and novel attack classes in network traffic streams. No labels. No thresholds. Feature-level attribution."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
-
-  <!-- Lenis smooth scroll -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-  <!-- Anime.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060a0f;
+  --surface:#0d1117;
+  --surface2:#161b22;
+  --border:#1e2530;
+  --text:#e6edf3;
+  --muted:#6e7681;
+  --blue:#58a6ff;
+  --blue-dim:#1a3a5c;
+  --green:#39d353;
+  --red:#f85149;
+  --red-dim:#3d1a18;
+  --amber:#e3b341;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#1e2530;border-radius:2px}
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:60px;
+  background:rgba(6,10,15,0.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(30,37,48,0.5);
+  transition:border-color .3s;
+}
+.nav-logo{font-family:var(--mono);font-size:.9rem;font-weight:700;color:var(--text);text-decoration:none;letter-spacing:.12em;display:flex;align-items:center;gap:10px}
+.nav-logo-dot{width:8px;height:8px;background:var(--red);border-radius:50%;animation:pulse-red 2s ease-in-out infinite}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.6)}50%{box-shadow:0 0 0 6px rgba(248,81,73,0)}}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;letter-spacing:.04em;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{font-family:var(--mono);background:transparent;color:var(--blue);border:1px solid var(--blue);font-size:.8rem;font-weight:700;padding:7px 18px;border-radius:4px;text-decoration:none;transition:background .2s,color .2s;letter-spacing:.06em}
+.nav-cta:hover{background:var(--blue);color:#060a0f}
 
-    :root {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --border:    #21262d;
-      --text:      #e6edf3;
-      --muted:     #8b949e;
-      --blue:      #58a6ff;
-      --green:     #3fb950;
-      --red:       #f85149;
-      --amber:     #d29922;
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Inter', sans-serif;
-    }
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;position:relative;overflow:hidden}
+#net-canvas{position:absolute;inset:0;z-index:0;opacity:.6}
 
-    html { scroll-behavior: auto; } /* Lenis handles this */
-    body { background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+/* Attack ticker */
+.ticker-wrap{
+  position:absolute;top:60px;left:0;right:0;overflow:hidden;
+  background:rgba(248,81,73,.06);border-top:1px solid rgba(248,81,73,.15);border-bottom:1px solid rgba(248,81,73,.15);
+  height:32px;display:flex;align-items:center;z-index:10;
+}
+.ticker{display:flex;animation:ticker-scroll 40s linear infinite;white-space:nowrap}
+.ticker-item{font-family:var(--mono);font-size:.7rem;color:var(--red);padding:0 32px;opacity:.85}
+.ticker-item span{color:var(--amber)}
+@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-    /* ── Scrollbar ─────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.hero-content{position:relative;z-index:5}
 
-    /* ── Navbar ────────────────────────────────────────── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 48px;
-      background: rgba(13,17,23,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(33,38,45,0.6);
-    }
-    .nav-logo {
-      font-family: var(--mono); font-size: 1rem; font-weight: 700;
-      color: var(--blue); text-decoration: none; display: flex; align-items: center; gap: 8px;
-    }
-    .nav-links { display: flex; gap: 28px; list-style: none; }
-    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.88rem; font-weight: 500; transition: color 0.2s; }
-    .nav-links a:hover { color: var(--text); }
-    .nav-cta {
-      background: var(--blue); color: #0d1117; font-weight: 700; font-size: 0.85rem;
-      padding: 8px 18px; border-radius: 6px; text-decoration: none; transition: opacity 0.2s;
-    }
-    .nav-cta:hover { opacity: 0.85; }
+/* Glitch title */
+.glitch-wrap{margin-bottom:8px}
+.glitch{
+  font-family:var(--mono);font-size:clamp(1rem,2vw,1.3rem);font-weight:700;
+  color:var(--muted);letter-spacing:.4em;text-transform:uppercase;
+  position:relative;display:inline-block;
+}
+.glitch::before,.glitch::after{
+  content:attr(data-text);position:absolute;top:0;left:0;
+  color:var(--muted);
+}
+.glitch::before{left:2px;text-shadow:-2px 0 var(--red);animation:glitch-1 3s infinite linear}
+.glitch::after{left:-2px;text-shadow:2px 0 var(--blue);animation:glitch-2 3s infinite linear}
+@keyframes glitch-1{
+  0%,5%,10%,15%,100%{clip-path:none;transform:none}
+  6%{clip-path:polygon(0 20%,100% 20%,100% 25%,0 25%);transform:translate(-2px)}
+  7%{clip-path:polygon(0 60%,100% 60%,100% 65%,0 65%);transform:translate(2px)}
+  8%{clip-path:none;transform:none}
+  11%{clip-path:polygon(0 40%,100% 40%,100% 45%,0 45%);transform:translate(-2px)}
+  12%{clip-path:none;transform:none}
+}
+@keyframes glitch-2{
+  0%,5%,10%,15%,100%{clip-path:none;transform:none}
+  6%{clip-path:polygon(0 70%,100% 70%,100% 75%,0 75%);transform:translate(2px)}
+  7%{clip-path:polygon(0 30%,100% 30%,100% 35%,0 35%);transform:translate(-2px)}
+  8%{clip-path:none;transform:none}
+}
 
-    /* ── Hero ──────────────────────────────────────────── */
-    .hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 120px 24px 80px;
-      position: relative; overflow: hidden;
-    }
-    .hero-grid {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(88,166,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(88,166,255,0.04) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
-    }
-    .hero-glow {
-      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
-      width: 800px; height: 600px; border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(88,166,255,0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3);
-      border-radius: 20px; padding: 6px 16px; margin-bottom: 28px;
-      font-family: var(--mono); font-size: 0.78rem; color: var(--red);
-      opacity: 0;
-    }
-    .badge-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--red);
-      animation: blink 1.5s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+.hero-h1{
+  font-size:clamp(3rem,8vw,6.5rem);font-weight:900;line-height:1.0;
+  letter-spacing:-.04em;margin:20px 0 28px;
+  background:linear-gradient(180deg,#e6edf3 0%,rgba(230,237,243,.6) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-h1 .accent{
+  background:linear-gradient(90deg,var(--red),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  font-size:clamp(.95rem,2.2vw,1.15rem);color:var(--muted);
+  max-width:540px;margin:0 auto 44px;line-height:1.75;font-weight:300;
+}
+.hero-sub strong{color:var(--text);font-weight:600}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-gh{
+  background:var(--text);color:#060a0f;font-weight:800;font-size:.88rem;
+  padding:12px 26px;border-radius:6px;text-decoration:none;
+  display:flex;align-items:center;gap:8px;transition:opacity .2s,transform .2s;
+  font-family:var(--sans);
+}
+.btn-gh:hover{opacity:.88;transform:translateY(-2px)}
+.btn-docs{
+  background:transparent;color:var(--muted);border:1px solid var(--border);
+  font-weight:600;font-size:.88rem;padding:12px 26px;border-radius:6px;
+  text-decoration:none;display:flex;align-items:center;gap:8px;
+  transition:border-color .2s,color .2s,transform .2s;
+}
+.btn-docs:hover{border-color:var(--muted);color:var(--text);transform:translateY(-2px)}
 
-    .hero h1 {
-      font-size: clamp(2.8rem, 7vw, 5.5rem); font-weight: 800; line-height: 1.08;
-      letter-spacing: -0.03em; margin-bottom: 24px; opacity: 0;
-    }
-    .hero h1 span { color: var(--blue); }
-    .hero-sub {
-      font-size: clamp(1rem, 2.5vw, 1.25rem); color: var(--muted); max-width: 600px;
-      line-height: 1.7; margin-bottom: 40px; font-weight: 400; opacity: 0;
-    }
-    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; opacity: 0; }
-    .btn-primary {
-      background: var(--blue); color: #0d1117; font-weight: 700; font-size: 0.95rem;
-      padding: 13px 28px; border-radius: 8px; text-decoration: none;
-      display: flex; align-items: center; gap: 8px; transition: transform 0.2s, opacity 0.2s;
-    }
-    .btn-primary:hover { transform: translateY(-2px); opacity: 0.9; }
-    .btn-secondary {
-      background: transparent; color: var(--text); font-weight: 600; font-size: 0.95rem;
-      padding: 13px 28px; border-radius: 8px; text-decoration: none; border: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px; transition: border-color 0.2s, transform 0.2s;
-    }
-    .btn-secondary:hover { border-color: var(--blue); transform: translateY(-2px); }
+/* Terminal */
+.hero-term{
+  margin-top:56px;background:#010409;border:1px solid var(--border);
+  border-radius:10px;max-width:700px;width:100%;text-align:left;
+  font-family:var(--mono);font-size:.78rem;overflow:hidden;
+  box-shadow:0 0 60px rgba(248,81,73,.08),0 32px 80px rgba(0,0,0,.5);
+}
+.term-bar{
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:10px;
+}
+.term-dots span{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px}
+.td1{background:#f85149}.td2{background:#e3b341}.td3{background:#39d353}
+.term-title{font-size:.7rem;color:var(--muted);margin-left:8px}
+.term-body{padding:20px;max-height:260px;overflow:hidden}
+.tl{margin:2px 0;line-height:1.6}
+.tp{color:var(--green)}.tc{color:var(--text)}.to{color:var(--muted)}
+.td{color:var(--red);font-weight:700}.ts{color:var(--green)}
+.tf{color:var(--amber)}.tcu{display:inline-block;width:7px;height:13px;background:var(--blue);animation:blink 1s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-    /* Terminal animation in hero */
-    .hero-terminal {
-      margin-top: 60px; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 20px 24px; max-width: 680px; width: 100%;
-      text-align: left; font-family: var(--mono); font-size: 0.82rem;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.4); opacity: 0;
-    }
-    .terminal-dots { display: flex; gap: 6px; margin-bottom: 16px; }
-    .terminal-dots span {
-      width: 12px; height: 12px; border-radius: 50%;
-    }
-    .d1 { background: #f85149; } .d2 { background: #d29922; } .d3 { background: #3fb950; }
-    .terminal-line { margin: 3px 0; }
-    .t-prompt { color: var(--green); }
-    .t-cmd    { color: var(--text); }
-    .t-out    { color: var(--muted); }
-    .t-drift  { color: var(--red); font-weight: 700; }
-    .t-stable { color: var(--green); }
-    .t-feat   { color: var(--amber); }
-    .cursor {
-      display: inline-block; width: 8px; height: 14px; background: var(--blue);
-      animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 2px;
-    }
+/* SECTION BASE */
+section{padding:110px 24px}
+.c{max-width:1100px;margin:0 auto}
+.s-tag{font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.s-tag::before{content:'';width:20px;height:1px;background:var(--red)}
+.s-title{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:18px}
+.s-sub{color:var(--muted);font-size:1rem;line-height:1.8;max-width:520px;font-weight:300}
 
-    /* ── Section commons ───────────────────────────────── */
-    section { padding: 100px 24px; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .section-tag {
-      font-family: var(--mono); font-size: 0.72rem; color: var(--blue);
-      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px;
-    }
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.2;
-      letter-spacing: -0.02em; margin-bottom: 16px;
-    }
-    .section-sub { color: var(--muted); font-size: 1.05rem; line-height: 1.7; max-width: 560px; }
+/* FEATURES */
+#features{border-top:1px solid var(--border)}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;margin-top:64px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.feat-card{
+  background:var(--surface);padding:36px 28px;position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.feat-card::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  background:radial-gradient(circle at top left,rgba(248,81,73,.08),transparent 60%);
+  transition:opacity .4s;
+}
+.feat-card:hover{background:var(--surface2)}
+.feat-card:hover::before{opacity:1}
+.feat-num{font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.15em;margin-bottom:20px}
+.feat-icon{font-size:1.6rem;margin-bottom:14px}
+.feat-title{font-size:1.05rem;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.feat-desc{color:var(--muted);font-size:.85rem;line-height:1.7;font-weight:300}
+.feat-tag{
+  display:inline-block;margin-top:14px;font-family:var(--mono);font-size:.65rem;
+  color:var(--red);border:1px solid rgba(248,81,73,.3);padding:3px 8px;border-radius:3px;
+}
 
-    /* ── Features ──────────────────────────────────────── */
-    #features { border-top: 1px solid var(--border); }
-    .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px; margin-top: 56px;
-    }
-    .feature-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 28px 24px;
-      transition: border-color 0.3s, transform 0.3s;
-      opacity: 0; transform: translateY(30px);
-    }
-    .feature-card:hover { border-color: var(--blue); transform: translateY(-4px); }
-    .feature-icon { font-size: 1.8rem; margin-bottom: 16px; }
-    .feature-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.65; }
+/* STATS — SOC rings */
+#stats{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 24px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:48px;text-align:center}
+.stat-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+.stat-ring{position:relative;width:100px;height:100px}
+.stat-ring svg{transform:rotate(-90deg)}
+.ring-track{fill:none;stroke:var(--border);stroke-width:4}
+.ring-fill{fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.4s cubic-bezier(.25,.46,.45,.94)}
+.stat-val{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--blue);
+}
+.stat-label{font-size:.72rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 
-    /* ── Stats ─────────────────────────────────────────── */
-    #stats { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 40px; text-align: center;
-    }
-    .stat-number {
-      font-family: var(--mono); font-size: 3rem; font-weight: 700; color: var(--blue);
-      line-height: 1; margin-bottom: 8px;
-    }
-    .stat-label { color: var(--muted); font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; }
+/* PIPELINE */
+#pipeline{border-top:1px solid var(--border)}
+.pipe-grid{
+  display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+  align-items:center;gap:0;margin-top:64px;
+}
+.pipe-node{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:24px 16px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.pipe-node.active{border-color:rgba(248,81,73,.5)}
+.pipe-node.active::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--red),transparent);
+  animation:scan-line 2s ease-in-out infinite;
+}
+@keyframes scan-line{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.pipe-icon{font-size:1.5rem;margin-bottom:8px}
+.pipe-label{font-size:.78rem;font-weight:700;color:var(--text);letter-spacing:.02em}
+.pipe-sub{font-size:.65rem;color:var(--muted);margin-top:4px}
+.pipe-arrow-wrap{display:flex;align-items:center;justify-content:center;padding:0 8px}
+.pipe-arrow-wrap svg{opacity:.3}
 
-    /* ── Pipeline / Architecture ───────────────────────── */
-    #pipeline { border-top: 1px solid var(--border); }
-    .pipeline-flow {
-      display: flex; align-items: center; justify-content: center;
-      flex-wrap: wrap; gap: 0; margin-top: 60px;
-    }
-    .pipe-node {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; padding: 18px 20px; text-align: center; min-width: 120px;
-      opacity: 0; transform: scale(0.85);
-    }
-    .pipe-node-icon { font-size: 1.4rem; margin-bottom: 6px; }
-    .pipe-node-label { font-size: 0.78rem; font-weight: 600; color: var(--text); }
-    .pipe-node-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
-    .pipe-arrow {
-      font-family: var(--mono); color: var(--border); font-size: 1.5rem;
-      padding: 0 8px; opacity: 0;
-    }
-    .pipe-node.highlight { border-color: var(--red); }
-    .pipe-node.highlight .pipe-node-label { color: var(--red); }
+/* Beam animation */
+.beam{
+  height:2px;background:linear-gradient(90deg,transparent,var(--blue),transparent);
+  width:100%;animation:beam-travel 3s ease-in-out infinite;
+}
+@keyframes beam-travel{0%,100%{opacity:0;transform:scaleX(0)}50%{opacity:1;transform:scaleX(1)}}
 
-    /* ── Code snippet ──────────────────────────────────── */
-    #usage { border-top: 1px solid var(--border); }
-    .code-block {
-      background: #010409; border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden; margin-top: 48px;
-    }
-    .code-header {
-      background: var(--surface); padding: 12px 20px;
-      display: flex; align-items: center; gap: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .code-lang { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
-    pre {
-      padding: 28px; overflow-x: auto; font-family: var(--mono);
-      font-size: 0.83rem; line-height: 1.75; color: var(--text);
-    }
-    .c-kw  { color: #ff7b72; }
-    .c-fn  { color: #d2a8ff; }
-    .c-str { color: #a5d6ff; }
-    .c-num { color: #79c0ff; }
-    .c-cm  { color: #8b949e; font-style: italic; }
-    .c-cls { color: #ffa657; }
+/* NOVELTY section */
+#novelty{border-top:1px solid var(--border);background:var(--surface)}
+.novelty-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-top:56px}
+.novelty-visual{position:relative}
+.autoenc-diagram{font-family:var(--mono);font-size:.75rem;color:var(--muted);line-height:2}
+.ae-box{
+  display:inline-block;padding:8px 16px;border-radius:6px;font-size:.72rem;font-weight:700;
+  border:1px solid;margin:4px;
+}
+.ae-a{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.06)}
+.ae-akc{border-color:var(--amber);color:var(--amber);background:rgba(227,179,65,.06)}
+.ae-arrow{color:var(--border);margin:0 8px}
+.ae-label{font-size:.65rem;color:var(--muted);margin-top:4px}
 
-    /* ── Stack ─────────────────────────────────────────── */
-    #stack { border-top: 1px solid var(--border); }
-    .stack-grid {
-      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 48px;
-    }
-    .stack-badge {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 18px;
-      font-family: var(--mono); font-size: 0.82rem; color: var(--muted);
-      transition: border-color 0.2s, color 0.2s;
-      opacity: 0; transform: translateY(16px);
-    }
-    .stack-badge:hover { border-color: var(--blue); color: var(--text); }
+/* CODE */
+#usage{border-top:1px solid var(--border)}
+.code-wrap{
+  background:#010409;border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;margin-top:52px;
+  box-shadow:0 24px 80px rgba(0,0,0,.4);
+}
+.code-bar{
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.code-file{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.code-lang{font-family:var(--mono);font-size:.68rem;color:var(--blue)}
+pre{padding:28px;font-family:var(--mono);font-size:.8rem;line-height:1.8;overflow-x:auto;color:var(--text)}
+.ck{color:#ff7b72}.cf{color:#d2a8ff}.cs{color:#a5d6ff}.cn{color:#79c0ff}
+.cm{color:var(--muted);font-style:italic}.cc{color:#ffa657}
 
-    /* ── CTA ───────────────────────────────────────────── */
-    #cta {
-      border-top: 1px solid var(--border); text-align: center;
-      background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(88,166,255,0.06), transparent);
-    }
-    #cta .section-title { max-width: 700px; margin: 0 auto 16px; }
-    #cta .section-sub { margin: 0 auto 40px; }
+/* STACK */
+#stack{border-top:1px solid var(--border)}
+.stack-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:48px}
+.stk{
+  font-family:var(--mono);font-size:.75rem;color:var(--muted);
+  border:1px solid var(--border);border-radius:4px;padding:8px 14px;
+  transition:border-color .2s,color .2s,transform .2s;cursor:default;
+}
+.stk:hover{border-color:var(--blue);color:var(--text);transform:translateY(-2px)}
 
-    /* ── Footer ────────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 32px 48px; display: flex; align-items: center; justify-content: space-between;
-      color: var(--muted); font-size: 0.82rem; flex-wrap: wrap; gap: 12px;
-    }
-    footer a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
-    footer a:hover { color: var(--text); }
-    .footer-links { display: flex; gap: 24px; }
+/* CTA */
+#cta{
+  border-top:1px solid var(--border);text-align:center;
+  background:radial-gradient(ellipse 70% 50% at 50% 100%,rgba(248,81,73,.05),transparent);
+}
+#cta .s-title{max-width:600px;margin:0 auto 16px}
+#cta .s-sub{margin:0 auto 44px}
 
-    /* ── Responsive ────────────────────────────────────── */
-    @media (max-width: 640px) {
-      nav { padding: 14px 20px; }
-      .nav-links { display: none; }
-      .pipeline-flow { gap: 8px; flex-direction: column; align-items: flex-start; }
-      .pipe-arrow { transform: rotate(90deg); }
-      footer { flex-direction: column; text-align: center; }
-    }
-  </style>
+/* FOOTER */
+footer{
+  border-top:1px solid var(--border);
+  padding:28px 48px;display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:.68rem;color:var(--muted);flex-wrap:wrap;gap:12px;
+}
+footer a{color:var(--muted);text-decoration:none;transition:color .2s}
+footer a:hover{color:var(--text)}
+.footer-links{display:flex;gap:20px}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:768px){
+  nav{padding:0 20px}.nav-links{display:none}
+  .pipe-grid{grid-template-columns:1fr;gap:12px}
+  .pipe-arrow-wrap{transform:rotate(90deg)}
+  .novelty-grid{grid-template-columns:1fr}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
 </head>
 <body>
 
-<!-- ── Navbar ────────────────────────────────────────────────────── -->
-<nav>
-  <a class="nav-logo" href="#">🛡️ Vigil</a>
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-logo" href="#">
+    <span class="nav-logo-dot"></span>VIGIL
+  </a>
   <ul class="nav-links">
-    <li><a href="#features">Features</a></li>
+    <li><a href="#features">Capabilities</a></li>
     <li><a href="#pipeline">Pipeline</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#stack">Stack</a></li>
   </ul>
-  <a class="nav-cta" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">View on GitHub ↗</a>
+  <a class="nav-cta" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">GITHUB ↗</a>
 </nav>
 
-<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<!-- HERO -->
 <section class="hero" id="home">
-  <div class="hero-grid"></div>
-  <div class="hero-glow"></div>
+  <canvas id="net-canvas"></canvas>
 
-  <div class="hero-badge" id="hero-badge">
-    <span class="badge-dot"></span>
-    arXiv:2605.29834 · Implementation + Extension
-  </div>
-
-  <h1 id="hero-title">
-    Your model knows<br/>when the <span>data shifts.</span>
-  </h1>
-
-  <p class="hero-sub" id="hero-sub">
-    <strong style="color:var(--text)">Vigil</strong> detects concept drift and novel attack classes in network traffic streams —
-    with no labels, no manual thresholds, and feature-level attribution that tells you <em>exactly</em> what changed.
-  </p>
-
-  <div class="hero-actions" id="hero-actions">
-    <a class="btn-primary" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">
-      ⭐ GitHub Repository
-    </a>
-    <a class="btn-secondary" href="#usage">
-      Quick Start →
-    </a>
-  </div>
-
-  <!-- Live terminal -->
-  <div class="hero-terminal" id="hero-terminal">
-    <div class="terminal-dots">
-      <span class="d1"></span><span class="d2"></span><span class="d3"></span>
-    </div>
-    <div id="terminal-output"></div>
-  </div>
-</section>
-
-<!-- ── Features ──────────────────────────────────────────────────── -->
-<section id="features">
-  <div class="container">
-    <div class="section-tag">Capabilities</div>
-    <h2 class="section-title">Drift detection that<br/>actually explains itself.</h2>
-    <p class="section-sub">Most drift detectors tell you <em>that</em> something changed. OWADD Sentinel tells you <em>what</em> changed and by how much.</p>
-
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🔍</div>
-        <div class="feature-title">Unsupervised Detection</div>
-        <div class="feature-desc">Replicated T-Test on autoencoder reconstruction errors. No ground-truth labels required — works in real production streams.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🆕</div>
-        <div class="feature-title">Novel Class Recognition</div>
-        <div class="feature-desc">A frozen mirror autoencoder (A_KC) isolates unknown attack classes from distribution drift. Knows the difference between "changed" and "new".</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">Feature Attribution</div>
-        <div class="feature-desc">Novel contribution — DriftAttributor ranks which input features caused the drift. Turns alerts into actionable intelligence for security analysts.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-title">Production Ready</div>
-        <div class="feature-desc">FastAPI REST service, Kafka stream integration, Airflow retraining DAGs, MLflow experiment tracking, and Docker for one-command deployment.</div>
-      </div>
+  <!-- Attack ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 11 [<span>ipsweep</span>] — severity=1.00 — service_eco_i(15.3%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 03 [<span>normal</span>] — error=0.0044</span>
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 24 — root_shell(27.7%) srv_diff_host_rate(11.1%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 07 [<span>normal</span>] — error=0.0047</span>
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 19 [<span>nmap</span>] — severity=0.73 — dst_host_srv_count(9.2%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 05 [<span>normal</span>] — error=0.0049</span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 11 [<span>ipsweep</span>] — severity=1.00 — service_eco_i(15.3%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 03 [<span>normal</span>] — error=0.0044</span>
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 24 — root_shell(27.7%) srv_diff_host_rate(11.1%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 07 [<span>normal</span>] — error=0.0047</span>
+      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 19 [<span>nmap</span>] — severity=0.73 — dst_host_srv_count(9.2%)</span>
+      <span class="ticker-item">✓ STABLE — Chunk 05 [<span>normal</span>] — error=0.0049</span>
     </div>
   </div>
-</section>
 
-<!-- ── Stats ─────────────────────────────────────────────────────── -->
-<section id="stats">
-  <div class="container">
-    <div class="stats-grid">
-      <div>
-        <div class="stat-number" data-target="14">0</div>
-        <div class="stat-label">Tests Passing</div>
-      </div>
-      <div>
-        <div class="stat-number" data-target="81">0</div>
-        <div class="stat-label">% Code Coverage</div>
-      </div>
-      <div>
-        <div class="stat-number" data-target="5">0</div>
-        <div class="stat-label">Docker Services</div>
-      </div>
-      <div>
-        <div class="stat-number" data-target="2">0</div>
-        <div class="stat-label">Airflow DAGs</div>
-      </div>
-      <div>
-        <div class="stat-number" data-target="122">0</div>
-        <div class="stat-label">NSL-KDD Features</div>
-      </div>
+  <div class="hero-content">
+    <div class="glitch-wrap">
+      <span class="glitch" data-text="VIGIL">VIGIL</span>
     </div>
-  </div>
-</section>
 
-<!-- ── Pipeline ───────────────────────────────────────────────────── -->
-<section id="pipeline">
-  <div class="container">
-    <div class="section-tag">Architecture</div>
-    <h2 class="section-title">End-to-end MLOps pipeline.</h2>
-    <p class="section-sub">From raw network traffic to automatic model retraining — fully automated and containerized.</p>
+    <h1 class="hero-h1" id="h1">
+      Your model knows<br/>when the <span class="accent">data shifts.</span>
+    </h1>
 
-    <div class="pipeline-flow">
-      <div class="pipe-node">
-        <div class="pipe-node-icon">📡</div>
-        <div class="pipe-node-label">Kafka</div>
-        <div class="pipe-node-sub">Stream ingestion</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-node highlight">
-        <div class="pipe-node-icon">🛡️</div>
-        <div class="pipe-node-label">Vigil</div>
-        <div class="pipe-node-sub">Drift detection</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-node">
-        <div class="pipe-node-icon">📊</div>
-        <div class="pipe-node-label">MLflow</div>
-        <div class="pipe-node-sub">Experiment tracking</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-node">
-        <div class="pipe-node-icon">✈️</div>
-        <div class="pipe-node-label">Airflow</div>
-        <div class="pipe-node-sub">Auto-retraining</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-node">
-        <div class="pipe-node-icon">🖥️</div>
-        <div class="pipe-node-label">Dashboard</div>
-        <div class="pipe-node-sub">SOC monitoring</div>
-      </div>
+    <p class="hero-sub" id="h-sub">
+      <strong>No labels. No thresholds.</strong> Unsupervised concept drift detection
+      for network traffic streams — with feature-level attribution that tells you
+      exactly which signals changed.
+    </p>
+
+    <div class="hero-btns" id="h-btns">
+      <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">
+        ★ &nbsp;Star on GitHub
+      </a>
+      <a class="btn-docs" href="#usage">Quick Start →</a>
     </div>
-  </div>
-</section>
 
-<!-- ── Usage ─────────────────────────────────────────────────────── -->
-<section id="usage">
-  <div class="container">
-    <div class="section-tag">Quick Start</div>
-    <h2 class="section-title">Three lines to<br/>start detecting drift.</h2>
-    <p class="section-sub">Install the package, fit on baseline data, then call detect on each incoming batch.</p>
-
-    <div class="code-block">
-      <div class="code-header">
-        <div class="terminal-dots">
-          <span class="d1"></span><span class="d2"></span><span class="d3"></span>
+    <!-- Terminal -->
+    <div class="hero-term" id="h-term">
+      <div class="term-bar">
+        <div class="term-dots">
+          <span class="td1"></span><span class="td2"></span><span class="td3"></span>
         </div>
-        <span class="code-lang">python</span>
+        <span class="term-title">kafka_pipeline/consumer.py — live output</span>
       </div>
-      <pre><span class="c-cm"># pip install -e ".[dev]"  (after cloning)</span>
-
-<span class="c-kw">from</span> <span class="c-fn">owadd_sentinel</span> <span class="c-kw">import</span> <span class="c-cls">OWADDSentinel</span>
-
-sentinel <span class="c-kw">=</span> <span class="c-cls">OWADDSentinel</span>(feature_names<span class="c-kw">=</span>your_feature_names)
-
-<span class="c-cm"># Phase 1: offline training on baseline traffic</span>
-sentinel.<span class="c-fn">fit</span>(baseline_data)
-
-<span class="c-cm"># Phase 2: detect on every incoming batch</span>
-<span class="c-kw">for</span> batch <span class="c-kw">in</span> stream:
-    result <span class="c-kw">=</span> sentinel.<span class="c-fn">detect</span>(batch)
-
-    <span class="c-kw">if</span> result.drift_detected:
-        <span class="c-fn">print</span>(<span class="c-str">f"⚠ Drift severity={result.drift_severity:.2f}"</span>)
-
-        <span class="c-kw">for</span> feat <span class="c-kw">in</span> result.attribution.top_features:
-            <span class="c-fn">print</span>(<span class="c-str">f"  {feat['feature_name']}: {feat['contribution']:.1%}"</span>)
-
-<span class="c-cm"># ⚠ Drift severity=1.00</span>
-<span class="c-cm">#   service_eco_i:              15.3%</span>
-<span class="c-cm">#   dst_host_same_src_port_rate: 12.3%</span>
-<span class="c-cm">#   srv_diff_host_rate:          11.1%</span></pre>
+      <div class="term-body" id="term-out"></div>
     </div>
   </div>
 </section>
 
-<!-- ── Stack ─────────────────────────────────────────────────────── -->
+<!-- FEATURES -->
+<section id="features">
+<div class="c">
+  <div class="s-tag">Capabilities</div>
+  <h2 class="s-title reveal">Drift detection that<br/>actually explains itself.</h2>
+  <p class="s-sub reveal">Most detectors tell you <em>that</em> something changed. Vigil tells you <em>what</em> changed and ranks it.</p>
+
+  <div class="feat-grid">
+    <div class="feat-card reveal">
+      <div class="feat-num">01</div>
+      <div class="feat-icon">🔬</div>
+      <div class="feat-title">Unsupervised Detection</div>
+      <div class="feat-desc">Replicated T-Test (r=15) on autoencoder reconstruction errors. Zero ground-truth labels needed. Works in real streams from day one.</div>
+      <span class="feat-tag">NO LABELS REQUIRED</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-num">02</div>
+      <div class="feat-icon">🆕</div>
+      <div class="feat-title">Novel Class Recognition</div>
+      <div class="feat-desc">A frozen mirror autoencoder (A_KC) separates unknown attack classes from distribution shift — knows the difference between "changed" and "new".</div>
+      <span class="feat-tag">DUAL AUTOENCODER</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-num">03</div>
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Feature Attribution</div>
+      <div class="feat-desc">DriftAttributor ranks input features by reconstruction error delta. Turns a drift alert into: "service_eco_i shifted 15.3%, dst_host changed 12.3%".</div>
+      <span class="feat-tag">NOVEL CONTRIBUTION</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-num">04</div>
+      <div class="feat-icon">🏭</div>
+      <div class="feat-title">Production Pipeline</div>
+      <div class="feat-desc">FastAPI REST. Kafka stream. Airflow retraining DAGs with quality gates. MLflow tracking. Docker compose. Five services, one command.</div>
+      <span class="feat-tag">MLOPS READY</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- STATS -->
+<section id="stats">
+<div class="c">
+  <div class="stats-grid">
+    <div class="stat-ring-wrap reveal">
+      <div class="stat-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--blue)" data-pct="100"/>
+        </svg>
+        <div class="stat-val" data-target="14">0</div>
+      </div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+    <div class="stat-ring-wrap reveal">
+      <div class="stat-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--green)" data-pct="81"/>
+        </svg>
+        <div class="stat-val" data-target="81">0</div>
+      </div>
+      <div class="stat-label">% Coverage</div>
+    </div>
+    <div class="stat-ring-wrap reveal">
+      <div class="stat-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--amber)" data-pct="100"/>
+        </svg>
+        <div class="stat-val" data-target="5">0</div>
+      </div>
+      <div class="stat-label">Docker Services</div>
+    </div>
+    <div class="stat-ring-wrap reveal">
+      <div class="stat-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--red)" data-pct="100"/>
+        </svg>
+        <div class="stat-val" data-target="2">0</div>
+      </div>
+      <div class="stat-label">Airflow DAGs</div>
+    </div>
+    <div class="stat-ring-wrap reveal">
+      <div class="stat-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--blue)" data-pct="100"/>
+        </svg>
+        <div class="stat-val" data-target="122">0</div>
+      </div>
+      <div class="stat-label">NSL-KDD Features</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+<div class="c">
+  <div class="s-tag">Architecture</div>
+  <h2 class="s-title reveal">End-to-end.<br/>Fully automated.</h2>
+  <p class="s-sub reveal">From raw network packets to automatic model retraining — Vigil orchestrates the entire pipeline.</p>
+
+  <div class="pipe-grid">
+    <div class="pipe-node reveal">
+      <div class="pipe-icon">📡</div>
+      <div class="pipe-label">Kafka</div>
+      <div class="pipe-sub">Stream ingestion</div>
+    </div>
+    <div class="pipe-arrow-wrap reveal">
+      <svg width="40" height="12" viewBox="0 0 40 12">
+        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="pipe-node active reveal">
+      <div class="pipe-icon">🛡️</div>
+      <div class="pipe-label">Vigil</div>
+      <div class="pipe-sub">Drift detection</div>
+    </div>
+    <div class="pipe-arrow-wrap reveal">
+      <svg width="40" height="12" viewBox="0 0 40 12">
+        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="pipe-node reveal">
+      <div class="pipe-icon">📈</div>
+      <div class="pipe-label">MLflow</div>
+      <div class="pipe-sub">Experiment tracking</div>
+    </div>
+    <div class="pipe-arrow-wrap reveal">
+      <svg width="40" height="12" viewBox="0 0 40 12">
+        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="pipe-node reveal">
+      <div class="pipe-icon">✈️</div>
+      <div class="pipe-label">Airflow</div>
+      <div class="pipe-sub">Auto-retraining</div>
+    </div>
+    <div class="pipe-arrow-wrap reveal">
+      <svg width="40" height="12" viewBox="0 0 40 12">
+        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="pipe-node reveal">
+      <div class="pipe-icon">🖥️</div>
+      <div class="pipe-label">SOC Dashboard</div>
+      <div class="pipe-sub">Live monitoring</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- USAGE -->
+<section id="usage">
+<div class="c">
+  <div class="s-tag">Quick Start</div>
+  <h2 class="s-title reveal">Three lines.<br/>Real detections.</h2>
+  <div class="code-wrap reveal">
+    <div class="code-bar">
+      <div class="term-dots"><span class="td1"></span><span class="td2"></span><span class="td3"></span></div>
+      <span class="code-file">main.py</span>
+      <span class="code-lang">Python 3.11</span>
+    </div>
+    <pre><span class="cm"># pip install -e ".[dev]"   ←  after cloning</span>
+
+<span class="ck">from</span> owadd_sentinel <span class="ck">import</span> <span class="cc">OWADDSentinel</span>
+
+sentinel <span class="ck">=</span> <span class="cc">OWADDSentinel</span>(feature_names<span class="ck">=</span>your_feature_names)
+sentinel.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offline phase</span>
+
+<span class="ck">for</span> batch <span class="ck">in</span> live_stream:
+    result <span class="ck">=</span> sentinel.<span class="cf">detect</span>(batch)
+
+    <span class="ck">if</span> result.drift_detected:
+        <span class="cf">print</span>(<span class="cs">f"⚠  severity={result.drift_severity:.2f}"</span>)
+
+        <span class="ck">for</span> f <span class="ck">in</span> result.attribution.top_features:
+            <span class="cf">print</span>(<span class="cs">f"   {f['feature_name']}: {f['contribution']:.1%}"</span>)
+
+<span class="cm"># ⚠  severity=1.00</span>
+<span class="cm"># → service_eco_i              15.3%   (port scan signature)</span>
+<span class="cm"># → dst_host_same_src_port_rate 12.3%   (scanning pattern)</span>
+<span class="cm"># → srv_diff_host_rate          11.1%   (lateral movement)</span></pre>
+  </div>
+</div>
+</section>
+
+<!-- STACK -->
 <section id="stack">
-  <div class="container">
-    <div class="section-tag">Tech Stack</div>
-    <h2 class="section-title">Built with industry tools.</h2>
-    <div class="stack-grid" id="stack-grid">
-      <div class="stack-badge">PyTorch</div>
-      <div class="stack-badge">scikit-learn</div>
-      <div class="stack-badge">SciPy</div>
-      <div class="stack-badge">FastAPI</div>
-      <div class="stack-badge">Pydantic</div>
-      <div class="stack-badge">MLflow</div>
-      <div class="stack-badge">Apache Kafka</div>
-      <div class="stack-badge">Apache Airflow</div>
-      <div class="stack-badge">Docker</div>
-      <div class="stack-badge">Streamlit</div>
-      <div class="stack-badge">Plotly</div>
-      <div class="stack-badge">GitHub Actions</div>
-      <div class="stack-badge">pytest</div>
-      <div class="stack-badge">Ruff</div>
-      <div class="stack-badge">NSL-KDD Dataset</div>
-    </div>
+<div class="c">
+  <div class="s-tag">Tech Stack</div>
+  <h2 class="s-title reveal">Industry tools.<br/>Real ML.</h2>
+  <div class="stack-row" id="stk-row">
+    <div class="stk">PyTorch</div><div class="stk">scikit-learn</div>
+    <div class="stk">SciPy</div><div class="stk">NumPy</div>
+    <div class="stk">FastAPI</div><div class="stk">Pydantic</div>
+    <div class="stk">Uvicorn</div><div class="stk">MLflow</div>
+    <div class="stk">Apache Kafka</div><div class="stk">Apache Airflow</div>
+    <div class="stk">Docker</div><div class="stk">Streamlit</div>
+    <div class="stk">Plotly</div><div class="stk">GitHub Actions</div>
+    <div class="stk">pytest</div><div class="stk">Ruff</div>
+    <div class="stk">NSL-KDD Dataset</div>
   </div>
+</div>
 </section>
 
-<!-- ── CTA ───────────────────────────────────────────────────────── -->
+<!-- CTA -->
 <section id="cta">
-  <div class="container">
-    <div class="section-tag">Open Source</div>
-    <h2 class="section-title">Star it. Clone it.<br/>Run it yourself.</h2>
-    <p class="section-sub">Everything — the algorithm, the API, the Airflow DAGs, the dashboard — is on GitHub under MIT license.</p>
-    <div class="hero-actions" style="justify-content:center">
-      <a class="btn-primary" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">⭐ Star on GitHub</a>
-      <a class="btn-secondary" href="https://github.com/Venkateswara-Sahu/OWADD#-quick-start" target="_blank">Read the Docs →</a>
-    </div>
+<div class="c">
+  <div class="s-tag">Open Source · MIT</div>
+  <h2 class="s-title reveal">Clone it.<br/>Break it.<br/>Build on it.</h2>
+  <p class="s-sub reveal">Everything is on GitHub. The algorithm, the API, the Airflow DAGs, the Kafka pipeline, the dashboard. All of it.</p>
+  <div class="hero-btns" style="justify-content:center;margin-top:40px">
+    <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">★ &nbsp;Star on GitHub</a>
+    <a class="btn-docs" href="https://github.com/Venkateswara-Sahu/OWADD#-quick-start" target="_blank">Read Docs →</a>
   </div>
+</div>
 </section>
 
-<!-- ── Footer ────────────────────────────────────────────────────── -->
+<!-- FOOTER -->
 <footer>
-  <div>🛡️ Vigil · MIT License · Built on <a href="https://arxiv.org/abs/2605.29834" target="_blank">arXiv:2605.29834</a></div>
+  <div>🛡️ VIGIL · MIT · <a href="https://arxiv.org/abs/2605.29834" target="_blank">arXiv:2605.29834</a></div>
   <div class="footer-links">
     <a href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">GitHub</a>
     <a href="https://arxiv.org/abs/2605.29834" target="_blank">Paper</a>
-    <a href="https://github.com/Venkateswara-Sahu/OWADD#-rest-api" target="_blank">API Docs</a>
+    <a href="https://github.com/Venkateswara-Sahu/OWADD#-rest-api" target="_blank">API</a>
   </div>
 </footer>
 
 <script>
-// ── Lenis smooth scroll ──────────────────────────────────────────────
-const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
-function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-requestAnimationFrame(raf);
+// ── Lenis ────────────────────────────────────────────────────────────────────
+const lenis = new Lenis({lerp:.08,smoothWheel:true});
+(function raf(t){lenis.raf(t);requestAnimationFrame(raf)})(0);
 
-// ── Intersection Observer helper ────────────────────────────────────
-function onVisible(el, cb, threshold = 0.15) {
-  new IntersectionObserver((entries, obs) => {
-    entries.forEach(e => { if (e.isIntersecting) { cb(e.target); obs.unobserve(e.target); } });
-  }, { threshold }).observe(el);
+// ── Canvas network ───────────────────────────────────────────────────────────
+const canvas = document.getElementById('net-canvas');
+const ctx    = canvas.getContext('2d');
+let W, H, nodes = [], frame = 0;
+
+function resize(){
+  W = canvas.width  = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  initNodes();
 }
 
-// ── Hero entrance ────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  anime.timeline({ easing: 'easeOutExpo' })
-    .add({ targets: '#hero-badge',   opacity: [0,1], translateY: [20,0], duration: 600 })
-    .add({ targets: '#hero-title',   opacity: [0,1], translateY: [30,0], duration: 700 }, '-=300')
-    .add({ targets: '#hero-sub',     opacity: [0,1], translateY: [20,0], duration: 600 }, '-=400')
-    .add({ targets: '#hero-actions', opacity: [0,1], translateY: [16,0], duration: 500 }, '-=300')
-    .add({ targets: '#hero-terminal',opacity: [0,1], translateY: [24,0], duration: 600 }, '-=200');
+function initNodes(){
+  nodes = Array.from({length: Math.floor(W*H/14000)}, () => ({
+    x: Math.random()*W, y: Math.random()*H,
+    vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4,
+    r: Math.random()*1.5+.8,
+    attack: Math.random() < .08,
+    alertT: 0,
+  }));
+}
 
-  // Start terminal typing after hero loads
-  setTimeout(typeTerminal, 900);
+function drawNetwork(){
+  ctx.clearRect(0,0,W,H);
+  frame++;
+
+  // Randomly flip a node to "attack" state
+  if(frame % 90 === 0){
+    const n = nodes[Math.floor(Math.random()*nodes.length)];
+    n.attack = true; n.alertT = 120;
+  }
+
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    if(n.x<0||n.x>W) n.vx*=-1;
+    if(n.y<0||n.y>H) n.vy*=-1;
+    if(n.alertT > 0) n.alertT--;
+    else if(n.alertT === 0 && n.attack) n.attack = false;
+  });
+
+  // Draw edges
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const dx = nodes[i].x-nodes[j].x, dy = nodes[i].y-nodes[j].y;
+      const d  = Math.sqrt(dx*dx+dy*dy);
+      if(d<130){
+        const alert = nodes[i].attack || nodes[j].attack;
+        ctx.beginPath();
+        ctx.strokeStyle = alert
+          ? `rgba(248,81,73,${(1-d/130)*.3})`
+          : `rgba(88,166,255,${(1-d/130)*.12})`;
+        ctx.lineWidth = alert ? 1 : .5;
+        ctx.moveTo(nodes[i].x,nodes[i].y);
+        ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes
+  nodes.forEach(n => {
+    ctx.beginPath();
+    if(n.attack){
+      ctx.arc(n.x,n.y,n.r*2.5,0,Math.PI*2);
+      ctx.fillStyle = `rgba(248,81,73,${.5+Math.sin(frame*.2)*.3})`;
+      ctx.fill();
+      // pulse ring
+      ctx.beginPath();
+      const pr = n.r*2.5 + (120-n.alertT)/8;
+      ctx.arc(n.x,n.y,pr,0,Math.PI*2);
+      ctx.strokeStyle = `rgba(248,81,73,${n.alertT/120*.4})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle = 'rgba(88,166,255,.5)';
+      ctx.fill();
+    }
+  });
+
+  requestAnimationFrame(drawNetwork);
+}
+
+window.addEventListener('resize', resize);
+resize();
+drawNetwork();
+
+// ── Hero entrance ────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  anime.timeline({easing:'easeOutExpo'})
+    .add({targets:'#h1',     opacity:[0,1],translateY:[40,0],duration:800})
+    .add({targets:'#h-sub',  opacity:[0,1],translateY:[24,0],duration:700},'-=500')
+    .add({targets:'#h-btns', opacity:[0,1],translateY:[16,0],duration:600},'-=400')
+    .add({targets:'#h-term', opacity:[0,1],translateY:[24,0],duration:600},'-=300');
+  setTimeout(typeTerminal, 1000);
 });
 
-// ── Terminal typing animation ────────────────────────────────────────
-const lines = [
-  { cls: 't-prompt', text: '$ python kafka_pipeline/consumer.py' },
-  { cls: 't-out',    text: '[Consumer] Listening on network-stream...' },
-  { cls: 't-out',    text: '[Consumer] Chunk 01 — TRAINING (200 samples, 4.0s)' },
-  { cls: 't-stable', text: '[Consumer] Chunk 02 [normal]    ✓ STABLE  | severity=0.00' },
-  { cls: 't-stable', text: '[Consumer] Chunk 05 [normal]    ✓ STABLE  | severity=0.00' },
-  { cls: 't-stable', text: '[Consumer] Chunk 09 [normal]    ✓ STABLE  | severity=0.00' },
-  { cls: 't-drift',  text: '[Consumer] Chunk 11 [ipsweep]   ⚠ DRIFT   | severity=1.00' },
-  { cls: 't-feat',   text: '             service_eco_i(15.3%), dst_host_same_src_port_rate(12.3%)' },
-  { cls: 't-stable', text: '[Consumer] Chunk 18 [normal]    ✓ STABLE  | severity=0.13' },
-  { cls: 't-drift',  text: '[Consumer] Chunk 24 [normal]    ⚠ DRIFT   | severity=0.33' },
-  { cls: 't-feat',   text: '             root_shell(27.7%), service_telnet(21.5%)' },
-  { cls: 't-out',    text: '[Consumer] Done. Processed 25 chunks total.' },
+// ── Terminal ─────────────────────────────────────────────────────────────────
+const termLines = [
+  {c:'tp', t:'$ python kafka_pipeline/consumer.py'},
+  {c:'to', t:'[Consumer] Connecting to Kafka at localhost:9092...'},
+  {c:'to', t:'[Consumer] Listening on topic=\'network-stream\'...'},
+  {c:'to', t:'[Consumer] Chunk 01 — TRAINING (200 samples, 4.0s)'},
+  {c:'ts', t:'[Consumer] Chunk 02 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0052'},
+  {c:'ts', t:'[Consumer] Chunk 05 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0049'},
+  {c:'ts', t:'[Consumer] Chunk 09 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0048'},
+  {c:'td', t:'[Consumer] Chunk 11 [ipsweep   ] ⚠ DRIFT   | severity=1.00 | error=0.0223'},
+  {c:'tf', t:'             → service_eco_i(15.3%), dst_host_same_src_port_rate(12.3%)'},
+  {c:'ts', t:'[Consumer] Chunk 18 [normal    ] ✓ STABLE  | severity=0.13 | error=0.0146'},
+  {c:'td', t:'[Consumer] Chunk 24 [normal    ] ⚠ DRIFT   | severity=0.33 | error=0.0175'},
+  {c:'tf', t:'             → root_shell(27.7%), service_telnet(21.5%)'},
+  {c:'to', t:'[Consumer] Done. Processed 25 chunks total.'},
 ];
 
-async function typeTerminal() {
-  const output = document.getElementById('terminal-output');
-  for (const line of lines) {
-    await new Promise(r => setTimeout(r, 280));
+async function typeTerminal(){
+  const out = document.getElementById('term-out');
+  for(const line of termLines){
+    await new Promise(r=>setTimeout(r,220));
     const el = document.createElement('div');
-    el.className = `terminal-line ${line.cls}`;
-    output.appendChild(el);
-    // Instant reveal (no char-by-char — keeps it snappy)
-    el.textContent = line.text;
-    output.scrollTop = output.scrollHeight;
+    el.className = `tl ${line.c}`;
+    el.textContent = line.t;
+    out.appendChild(el);
   }
-  // Blinking cursor at end
   const cur = document.createElement('span');
-  cur.className = 'cursor';
-  output.lastChild.appendChild(cur);
+  cur.className = 'tcu';
+  out.lastChild.appendChild(cur);
 }
 
-// ── Feature cards ────────────────────────────────────────────────────
-document.querySelectorAll('.feature-card').forEach((card, i) => {
-  onVisible(card, () => {
+// ── Scroll reveals ───────────────────────────────────────────────────────────
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach((e,i) => {
+    if(e.isIntersecting){
+      setTimeout(()=>{e.target.classList.add('in')}, e.target.dataset.delay||0);
+      revealObs.unobserve(e.target);
+    }
+  });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach((el,i)=>{
+  el.dataset.delay = (i%4)*80;
+  revealObs.observe(el);
+});
+
+// ── Stat rings ───────────────────────────────────────────────────────────────
+const ringObs = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const wrap = e.target;
+    const ring = wrap.querySelector('.ring-fill');
+    const val  = wrap.querySelector('.stat-val');
+    const pct  = parseInt(ring.dataset.pct);
+    const target = parseInt(val.dataset.target);
+    const circ = 2*Math.PI*45; // 283
+
     anime({
-      targets: card, opacity: [0,1], translateY: [30,0],
-      duration: 600, delay: i * 100, easing: 'easeOutExpo'
+      targets: ring,
+      strokeDashoffset: [circ, circ*(1-pct/100)],
+      duration:1600, easing:'easeOutQuart'
     });
-  });
-});
-
-// ── Stat counters ────────────────────────────────────────────────────
-document.querySelectorAll('.stat-number').forEach(el => {
-  onVisible(el, () => {
-    const target = parseInt(el.dataset.target);
     anime({
-      targets: el, innerHTML: [0, target], round: 1,
-      duration: 1400, easing: 'easeOutExpo',
-      update: () => { el.innerHTML = Math.round(el.innerHTML); }
+      targets: val, innerHTML:[0,target], round:1,
+      duration:1400, easing:'easeOutQuart',
+      update:()=>{ val.innerHTML = Math.round(val.innerHTML) }
     });
-  }, 0.5);
-});
-
-// ── Pipeline nodes ───────────────────────────────────────────────────
-const pipeEls = document.querySelectorAll('.pipe-node, .pipe-arrow');
-onVisible(document.querySelector('.pipeline-flow'), () => {
-  anime({
-    targets: '.pipe-node',
-    opacity: [0,1], scale: [0.85,1],
-    duration: 500, delay: anime.stagger(120), easing: 'easeOutBack'
+    ringObs.unobserve(wrap);
   });
-  anime({
-    targets: '.pipe-arrow',
-    opacity: [0,1], duration: 400, delay: anime.stagger(120, {start: 180}), easing: 'easeOutExpo'
-  });
-}, 0.2);
+},{threshold:.4});
+document.querySelectorAll('.stat-ring-wrap').forEach(el=>ringObs.observe(el));
 
-// ── Stack badges ─────────────────────────────────────────────────────
-onVisible(document.getElementById('stack-grid'), () => {
-  anime({
-    targets: '.stack-badge',
-    opacity: [0,1], translateY: [16,0],
-    duration: 400, delay: anime.stagger(50), easing: 'easeOutExpo'
+// ── Stack badges stagger ─────────────────────────────────────────────────────
+const stackObs = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    anime({
+      targets:'#stk-row .stk',
+      opacity:[0,1],translateY:[16,0],
+      duration:400,delay:anime.stagger(40),easing:'easeOutExpo'
+    });
+    stackObs.unobserve(e.target);
   });
-}, 0.1);
-
-// ── Remove version warning from docker-compose.yml (not relevant here) ──
-// Navbar scroll style
-window.addEventListener('scroll', () => {
-  document.querySelector('nav').style.borderBottomColor =
-    window.scrollY > 20 ? 'rgba(33,38,45,0.9)' : 'rgba(33,38,45,0.6)';
-});
+},{threshold:.1});
+stackObs.observe(document.getElementById('stk-row'));
 </script>
 </body>
 </html>
