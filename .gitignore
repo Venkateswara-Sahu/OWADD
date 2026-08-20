@@ -18,6 +18,11 @@ lib/
 lib64/
 .eggs/
 
+# Misc
+*.pdf
+*.txt
+!requirements*.txt
+
 # Virtual environments
 .env
 .venv
