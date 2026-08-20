@@ -1,0 +1,32 @@
+# OWADD Sentinel — Airflow setup
+# ─────────────────────────────────
+# Install Airflow with the correct constraints for Python 3.11:
+#
+#   pip install "apache-airflow==2.9.3" \
+#     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.3/constraints-3.11.txt"
+#
+# Then install project dependencies:
+#
+#   pip install -e ".[dev]"
+#
+# Initialize Airflow:
+#   export AIRFLOW_HOME=$(pwd)/airflow
+#   airflow db migrate
+#   airflow users create --username admin --password admin --firstname OWADD --lastname Admin --role Admin --email admin@example.com
+#
+# Copy DAGs to Airflow DAGs folder (or set dags_folder in airflow.cfg):
+#   export AIRFLOW__CORE__DAGS_FOLDER=$(pwd)/airflow/dags
+#
+# Start webserver + scheduler:
+#   airflow webserver --port 8080 &
+#   airflow scheduler &
+#
+# Open UI: http://localhost:8080  (admin / admin)
+#
+# Available DAGs:
+#   owadd_stream_monitor  — runs hourly, detects drift, triggers retrain
+#   owadd_retrain         — triggered DAG, retrains + quality gates model
+
+apache-airflow==2.9.3
+kafka-python==2.0.2
+mlflow>=2.0.0
