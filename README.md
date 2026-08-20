@@ -8,7 +8,7 @@
 
 <br/><br/>
 
-# 🛡️ OWADD Sentinel
+# 🛡️ Vigil
 
 ### Production-ready unsupervised concept drift detection for tabular data streams
 
@@ -285,7 +285,7 @@ This project implements and extends:
 > **"Open World Autoencoding Drift Detection with Novel Class Recognition in Tabular Non-stationary Data Streams"**  
 > arXiv:2605.29834
 
-**Extensions in OWADD Sentinel (not in the paper):**
+**Extensions in Vigil (not in the paper):**
 - `DriftAttributor`: per-feature reconstruction error delta analysis — makes drift detection *actionable* by identifying which features drifted and by how much
 - FastAPI REST service for production deployment
 - MLflow integration for experiment tracking and model versioning

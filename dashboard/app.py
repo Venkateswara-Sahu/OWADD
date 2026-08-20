@@ -1,6 +1,6 @@
 """
-OWADD Sentinel — SOC Dashboard
-================================
+Vigil — SOC Dashboard
+======================
 Security Operations Center style real-time drift monitoring dashboard.
 
 Architecture: one chunk processed per st.rerun() — no loops in main script.
@@ -19,7 +19,7 @@ sys.path.insert(0, ".")
 
 # ─── Page config — must be first ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="OWADD Sentinel | SOC Dashboard",
+    page_title="Vigil | SOC Dashboard",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
