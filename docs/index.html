@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -355,7 +355,14 @@ footer a:hover{color:var(--text)}
       <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">
         ★ &nbsp;Star on GitHub
       </a>
+      <a class="btn-gh" href="https://pypi.org/project/vigil-drift/" target="_blank" style="background:var(--surface2);color:var(--blue);border:1px solid var(--blue-dim)">
+        📦 &nbsp;PyPI Package
+      </a>
       <a class="btn-docs" href="#usage">Quick Start →</a>
+    </div>
+
+    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-family:var(--mono);font-size:.82rem;color:var(--green);display:inline-block" id="h-pill">
+      <span style="color:var(--muted)">$</span> pip install <span style="color:var(--text)">vigil-drift</span>
     </div>
 
     <!-- Terminal -->
@@ -537,15 +544,15 @@ footer a:hover{color:var(--text)}
       <span class="code-file">main.py</span>
       <span class="code-lang">Python 3.11</span>
     </div>
-    <pre><span class="cm"># pip install -e ".[dev]"   ←  after cloning</span>
+    <pre><span class="cm"># pip install vigil-drift</span>
 
 <span class="ck">from</span> vigil <span class="ck">import</span> <span class="cc">Vigil</span>
 
-sentinel <span class="ck">=</span> <span class="cc">Vigil</span>(feature_names<span class="ck">=</span>your_feature_names)
-sentinel.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offline phase</span>
+v <span class="ck">=</span> <span class="cc">Vigil</span>(feature_names<span class="ck">=</span>your_feature_names)
+v.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offline phase</span>
 
 <span class="ck">for</span> batch <span class="ck">in</span> live_stream:
-    result <span class="ck">=</span> sentinel.<span class="cf">detect</span>(batch)
+    result <span class="ck">=</span> v.<span class="cf">detect</span>(batch)
 
     <span class="ck">if</span> result.drift_detected:
         <span class="cf">print</span>(<span class="cs">f"⚠  severity={result.drift_severity:.2f}"</span>)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vigil-drift"
-version = "0.1.0"
+version = "0.1.1"
 description = "Vigil — unsupervised concept drift detection for network streams with feature-level attribution. Based on arXiv:2605.29834."
 readme = "README.md"
 license = { text = "MIT" }
