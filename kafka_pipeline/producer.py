@@ -1,5 +1,5 @@
-"""
-Kafka Producer — OWADD Sentinel
+﻿"""
+Kafka Producer — Vigil
 ================================
 Simulates a real-time network traffic stream by reading NSL-KDD chunks
 and publishing them to a Kafka topic for the consumer/detector to process.

@@ -16,7 +16,7 @@ Approach: Gradient-based feature attribution on the autoencoder.
     3. Normalize contributions to get a proportion (sums to 1.0).
     4. Rank features by their drift contribution.
 
-This is the key NOVEL CONTRIBUTION of OWADD Sentinel over the base paper.
+This is the key NOVEL CONTRIBUTION of Vigil over the base paper.
 It makes drift detection ACTIONABLE — engineers know exactly where to look.
 """
 
@@ -56,7 +56,7 @@ class DriftAttributor:
     """
     Computes feature-level attribution for detected concept drift.
 
-    This is the original contribution of OWADD Sentinel beyond arXiv:2605.29834.
+    This is the original contribution of Vigil beyond arXiv:2605.29834.
     It pinpoints which features are responsible for triggering drift detection,
     making drift alerts actionable for data engineers and ML teams.
 

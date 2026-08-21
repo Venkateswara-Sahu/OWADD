@@ -200,7 +200,7 @@ with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:10px 0 20px">
         <div style="font-size:2rem">🛡️</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:1rem;color:#58a6ff;font-weight:700">OWADD SENTINEL</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:1rem;color:#58a6ff;font-weight:700">Vigil</div>
         <div style="font-size:0.7rem;color:#8b949e;margin-top:4px">Network Drift Detection System</div>
     </div>""", unsafe_allow_html=True)
 
@@ -250,7 +250,7 @@ st.markdown("""
 <div style="display:flex;align-items:center;gap:14px;padding:10px 0 20px;border-bottom:1px solid #21262d;margin-bottom:20px">
     <div style="font-size:1.5rem">🛡️</div>
     <div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;color:#e6edf3">OWADD Sentinel</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;color:#e6edf3">Vigil</div>
         <div style="font-size:0.75rem;color:#8b949e">Real-Time Network Intrusion Drift Detection &nbsp;·&nbsp; NSL-KDD Stream</div>
     </div>
 </div>""", unsafe_allow_html=True)
@@ -330,7 +330,7 @@ if start_btn and not st.session_state.running:
                           drift_after_chunk=drift_at, novelty_after_chunk=novelty_at)
     first = next(sim.stream(n_chunks=1))
 
-    with st.spinner("Training OWADD Sentinel on initial traffic baseline..."):
+    with st.spinner("Training Vigil on initial traffic baseline..."):
         sentinel = Vigil(feature_names=feat_names, top_k_features=5, buffer_size=400)
         sentinel.fit(first.X, verbose=False)
 

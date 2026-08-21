@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python&logoColor=white"/>
 <img src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white"/>
@@ -26,7 +26,7 @@ In production ML systems, the data your model was trained on eventually stops lo
 
 Most drift detectors either require labels (which you never have in real-time) or only tell you *that* drift happened, not *what* drifted.
 
-**OWADD Sentinel solves both.**
+**Vigil solves both.**
 
 ---
 
@@ -47,7 +47,7 @@ Most drift detectors either require labels (which you never have in real-time) o
 
 ```
                     ┌─────────────────────────────────────────────────┐
-                    │              OWADD Sentinel System               │
+                    │              Vigil System               │
                     │                                                  │
   Data Stream       │  ┌──────────┐    ┌─────────────────────────┐   │
  ─────────────►     │  │  Chunk   │───►│    Autoencoder A         │   │
@@ -83,7 +83,7 @@ Most drift detectors either require labels (which you never have in real-time) o
 - Dual autoencoders: **A** adapts on drift; **A_KC** stays frozen to distinguish drift from novelty
 - Replicated T-tests (r=15) reduce variance vs. a single test
 
-**Novel contribution (OWADD Sentinel, not in the paper):**
+**Novel contribution (Vigil, not in the paper):**
 - `DriftAttributor` computes per-feature reconstruction error delta → ranks features by drift contribution → makes alerts *actionable*
 
 ---

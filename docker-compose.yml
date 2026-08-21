@@ -1,4 +1,4 @@
-# OWADD Sentinel — Docker Compose
+﻿# Vigil — Docker Compose
 # ─────────────────────────────────
 # Brings up the entire system with one command:
 #   docker-compose up

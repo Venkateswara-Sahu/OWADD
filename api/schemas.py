@@ -1,5 +1,5 @@
-"""
-Pydantic schemas for the OWADD Sentinel REST API.
+﻿"""
+Pydantic schemas for the Vigil REST API.
 Defines the shape of requests and responses for the /detect endpoint.
 """
 

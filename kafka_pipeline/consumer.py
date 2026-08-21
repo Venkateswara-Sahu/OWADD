@@ -1,7 +1,7 @@
 ﻿"""
-Kafka Consumer — OWADD Sentinel
+Kafka Consumer — Vigil
 =================================
-Reads network traffic chunks from a Kafka topic and runs OWADD Sentinel
+Reads network traffic chunks from a Kafka topic and runs Vigil
 drift detection on each chunk in real time.
 
 Usage:
@@ -84,7 +84,7 @@ def main():
                 train_data = np.vstack(train_buf)
                 sentinel   = Vigil(feature_names=feat_names, top_k_features=5)
 
-                print(f"[Consumer] Fitting OWADD Sentinel on {len(train_data)} samples...")
+                print(f"[Consumer] Fitting Vigil on {len(train_data)} samples...")
                 t0 = time.time()
                 sentinel.fit(train_data, verbose=False)
                 print(f"[Consumer] ✓ Sentinel ready in {time.time()-t0:.1f}s\n")

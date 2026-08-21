@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -539,9 +539,9 @@ footer a:hover{color:var(--text)}
     </div>
     <pre><span class="cm"># pip install -e ".[dev]"   ←  after cloning</span>
 
-<span class="ck">from</span> owadd_sentinel <span class="ck">import</span> <span class="cc">OWADDSentinel</span>
+<span class="ck">from</span> vigil <span class="ck">import</span> <span class="cc">Vigil</span>
 
-sentinel <span class="ck">=</span> <span class="cc">OWADDSentinel</span>(feature_names<span class="ck">=</span>your_feature_names)
+sentinel <span class="ck">=</span> <span class="cc">Vigil</span>(feature_names<span class="ck">=</span>your_feature_names)
 sentinel.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offline phase</span>
 
 <span class="ck">for</span> batch <span class="ck">in</span> live_stream:

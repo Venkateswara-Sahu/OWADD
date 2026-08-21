@@ -1,7 +1,7 @@
 ﻿"""
 MLflow Logger
 =============
-Logs every OWADD Sentinel detection result to MLflow for experiment tracking.
+Logs every Vigil detection result to MLflow for experiment tracking.
 
 What gets logged per chunk:
   Metrics:
@@ -44,7 +44,7 @@ from vigil.sentinel import SentinelResult
 
 class MLflowLogger:
     """
-    Logs OWADD Sentinel stream processing results to MLflow.
+    Logs Vigil stream processing results to MLflow.
 
     Parameters
     ----------
@@ -59,7 +59,7 @@ class MLflowLogger:
 
     def __init__(
         self,
-        experiment_name: str = "owadd-sentinel",
+        experiment_name: str = "vigil",
         tracking_uri: str = "mlruns",
         run_name: str = "stream-run",
     ):

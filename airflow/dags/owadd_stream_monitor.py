@@ -2,11 +2,11 @@
 DAG: owadd_stream_monitor
 ==========================
 Runs every hour to process the latest batch of network traffic through
-OWADD Sentinel, log results to MLflow, and trigger retraining if drift
+Vigil, log results to MLflow, and trigger retraining if drift
 is consistently detected across multiple consecutive chunks.
 
 Schedule: hourly
-Owner:    owadd-sentinel
+Owner:    vigil
 
 Task Graph:
     load_latest_chunk
@@ -54,7 +54,7 @@ log = logging.getLogger(__name__)
 
 # ─── Default args ─────────────────────────────────────────────────────────────
 DEFAULT_ARGS = {
-    "owner":            "owadd-sentinel",
+    "owner":            "vigil",
     "depends_on_past":  False,
     "email_on_failure": False,
     "email_on_retry":   False,
@@ -108,7 +108,7 @@ def load_latest_chunk(**context) -> dict:
 
 def run_drift_detection(**context) -> dict:
     """
-    Run OWADD Sentinel on the current chunk.
+    Run Vigil on the current chunk.
     Model state is loaded from a saved checkpoint if available, otherwise
     fit on the first chunk encountered.
     """
@@ -124,11 +124,11 @@ def run_drift_detection(**context) -> dict:
     model_path = os.path.join(PROJECT_ROOT, "airflow", "model_checkpoint.pkl")
 
     if os.path.exists(model_path):
-        log.info("Loading OWADD Sentinel from checkpoint: %s", model_path)
+        log.info("Loading Vigil from checkpoint: %s", model_path)
         with open(model_path, "rb") as f:
             sentinel = pickle.load(f)
     else:
-        log.info("No checkpoint found — fitting OWADD Sentinel on current chunk (cold start)")
+        log.info("No checkpoint found — fitting Vigil on current chunk (cold start)")
         sentinel = Vigil(feature_names=feat_names, top_k_features=5)
         sentinel.fit(chunk_data, verbose=False)
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -246,7 +246,7 @@ def send_alert(**context) -> None:
 
 with DAG(
     dag_id="owadd_stream_monitor",
-    description="Hourly OWADD Sentinel drift monitoring on network traffic stream",
+    description="Hourly Vigil drift monitoring on network traffic stream",
     schedule_interval="@hourly",
     start_date=days_ago(1),
     catchup=False,
@@ -259,7 +259,7 @@ Runs every hour to check if network traffic distribution has shifted.
 
 ### What it does
 1. **load_latest_chunk** — loads the current batch of network traffic data
-2. **run_drift_detection** — runs OWADD Sentinel dual-autoencoder drift detection
+2. **run_drift_detection** — runs Vigil dual-autoencoder drift detection
 3. **log_to_mlflow** — records drift metrics and feature attribution to MLflow
 4. **check_drift_threshold** — decides if drift is significant enough to retrain
 5. **trigger_retrain_dag** — if yes, kicks off the `owadd_retrain` DAG

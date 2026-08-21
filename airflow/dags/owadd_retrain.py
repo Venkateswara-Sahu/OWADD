@@ -2,11 +2,11 @@
 DAG: owadd_retrain
 ===================
 Triggered by owadd_stream_monitor when drift severity crosses threshold.
-Retrains OWADD Sentinel on accumulated recent data, evaluates the new model,
+Retrains Vigil on accumulated recent data, evaluates the new model,
 and promotes it to production if it passes quality checks.
 
 Schedule: triggered only (not scheduled)
-Owner:    owadd-sentinel
+Owner:    vigil
 
 Task Graph:
     load_recent_data
@@ -51,7 +51,7 @@ sys.path.insert(0, PROJECT_ROOT)
 log = logging.getLogger(__name__)
 
 DEFAULT_ARGS = {
-    "owner":            "owadd-sentinel",
+    "owner":            "vigil",
     "depends_on_past":  False,
     "email_on_failure": False,
     "retries":          0,
@@ -90,7 +90,7 @@ def load_recent_data(**context) -> None:
 
 
 def retrain_sentinel(**context) -> None:
-    """Retrain OWADD Sentinel on recent data."""
+    """Retrain Vigil on recent data."""
     from vigil import Vigil
 
     ti          = context["task_instance"]
@@ -98,7 +98,7 @@ def retrain_sentinel(**context) -> None:
                            dtype="float32")
     feat_names  = ti.xcom_pull(task_ids="load_recent_data", key="feature_names")
 
-    log.info("Retraining OWADD Sentinel on %d samples...", len(recent_X))
+    log.info("Retraining Vigil on %d samples...", len(recent_X))
 
     # Back up current production model before overwriting
     if os.path.exists(MODEL_CHECKPOINT):
@@ -226,7 +226,7 @@ def alert_retrain_failed(**context) -> None:
 
 with DAG(
     dag_id="owadd_retrain",
-    description="Triggered retraining of OWADD Sentinel when drift is detected",
+    description="Triggered retraining of Vigil when drift is detected",
     schedule_interval=None,     # triggered only — never runs on a schedule
     start_date=days_ago(1),
     catchup=False,
@@ -239,7 +239,7 @@ Triggered automatically by `owadd_stream_monitor` when drift severity exceeds th
 
 ### Pipeline
 1. Load recent 20% of NSL-KDD data (simulates rolling window in production)
-2. Retrain OWADD Sentinel from scratch on this data
+2. Retrain Vigil from scratch on this data
 3. Evaluate on held-out stable data (measures false-positive rate)
 4. **Quality gate**: promote if score ≥ threshold, rollback otherwise
 5. Log everything to MLflow

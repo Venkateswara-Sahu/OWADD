@@ -1,1 +1,1 @@
-"""Kafka package for OWADD Sentinel stream ingestion."""
+﻿"""Kafka package for Vigil stream ingestion."""

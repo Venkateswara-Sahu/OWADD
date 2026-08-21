@@ -225,7 +225,7 @@ class Vigil:
             self.n_features = initial_data.shape[1]
 
         if verbose:
-            print(f"[OWADD Sentinel] Fitting on {len(initial_data)} samples, "
+            print(f"[Vigil] Fitting on {len(initial_data)} samples, "
                   f"{self.n_features} features...")
 
         # Create dual mirrored autoencoders
@@ -237,7 +237,7 @@ class Vigil:
         # Train both on initial data (they start identical)
         if verbose:
             n = self.initial_epochs
-            print(f"[OWADD Sentinel] Training autoencoders ({n} epochs)...")
+            print(f"[Vigil] Training autoencoders ({n} epochs)...")
         train_autoencoder(
             self._autoencoder_A, initial_data,
             epochs=self.initial_epochs, verbose=verbose
@@ -261,7 +261,7 @@ class Vigil:
         self._chunk_counter = 1
 
         if verbose:
-            print("[OWADD Sentinel] ✅ Fitted and ready for stream processing.")
+            print("[Vigil] ✅ Fitted and ready for stream processing.")
 
         return self
 

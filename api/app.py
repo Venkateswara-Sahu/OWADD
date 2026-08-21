@@ -1,5 +1,5 @@
 ﻿"""
-OWADD Sentinel — FastAPI REST Service
+Vigil — FastAPI REST Service
 ======================================
 Exposes the Vigil as a production-ready HTTP microservice.
 
@@ -45,9 +45,9 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     global sentinel
     sentinel = Vigil()
-    print("[OWADD Sentinel API] Ready. POST /fit to train, POST /detect to analyse.")
+    print("[Vigil API] Ready. POST /fit to train, POST /detect to analyse.")
     yield
-    print("[OWADD Sentinel API] Shutting down.")
+    print("[Vigil API] Shutting down.")
 
 
 # ─────────────────────────────────────────────
@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 # ─────────────────────────────────────────────
 
 app = FastAPI(
-    title="OWADD Sentinel API",
+    title="Vigil API",
     description=(
         "Production-ready unsupervised ML data drift detection with feature attribution. "
         "Based on arXiv:2605.29834. "
@@ -88,7 +88,7 @@ def health():
     Returns 200 OK if the service is running.
     Used by Docker HEALTHCHECK and Kubernetes liveness probes.
     """
-    return {"status": "ok", "service": "owadd-sentinel"}
+    return {"status": "ok", "service": "vigil"}
 
 
 @app.get("/status", response_model=StatusResponse, tags=["System"])
@@ -105,7 +105,7 @@ def status():
 @app.post("/fit", tags=["Model"])
 def fit(request: FitRequest):
     """
-    Train the OWADD Sentinel on the initial data batch (offline phase).
+    Train the Vigil on the initial data batch (offline phase).
 
     Must be called once before /detect. Provide at least 200 samples.
     The model trains two autoencoders and fits the KDE novelty baseline.
