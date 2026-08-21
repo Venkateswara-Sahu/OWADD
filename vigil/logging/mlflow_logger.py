@@ -1,4 +1,4 @@
-"""
+﻿"""
 MLflow Logger
 =============
 Logs every OWADD Sentinel detection result to MLflow for experiment tracking.
@@ -21,7 +21,7 @@ What gets logged per chunk:
     - attribution report as JSON
 
 Usage:
-    from owadd_sentinel.logging.mlflow_logger import MLflowLogger
+    from vigil.logging.mlflow_logger import MLflowLogger
 
     logger = MLflowLogger(experiment_name="nsl_kdd_stream")
     logger.start_run()
@@ -39,7 +39,7 @@ from pathlib import Path
 import mlflow
 import mlflow.pytorch
 
-from owadd_sentinel.sentinel import SentinelResult
+from vigil.sentinel import SentinelResult
 
 
 class MLflowLogger:
@@ -102,7 +102,7 @@ class MLflowLogger:
         Parameters
         ----------
         result : SentinelResult
-            Output from OWADDSentinel.detect().
+            Output from Vigil.detect().
         ground_truth_label : str, optional
             True dominant class label for this chunk (used as a tag).
         """
@@ -150,7 +150,7 @@ class MLflowLogger:
 
         Parameters
         ----------
-        sentinel : OWADDSentinel
+        sentinel : Vigil
         artifact_path : str
         """
         if sentinel._autoencoder_A is not None:

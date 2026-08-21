@@ -1,4 +1,4 @@
-"""
+﻿"""
 Novelty Detector Module
 ========================
 Implements KDE-based novel class recognition using the A_KC mirror autoencoder,

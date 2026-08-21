@@ -1,4 +1,4 @@
-"""
+﻿"""
 Kafka Consumer — OWADD Sentinel
 =================================
 Reads network traffic chunks from a Kafka topic and runs OWADD Sentinel
@@ -37,7 +37,7 @@ def main():
         print("kafka-python not installed. Run: pip install kafka-python")
         sys.exit(1)
 
-    from owadd_sentinel import OWADDSentinel
+    from vigil import Vigil
 
     print(f"[Consumer] Connecting to Kafka at {args.broker}...")
     consumer = KafkaConsumer(
@@ -58,7 +58,7 @@ def main():
     print(f"           Will train on first {args.train_chunks} chunk(s), then detect.\n")
 
     if args.mlflow:
-        from owadd_sentinel.logging.mlflow_logger import MLflowLogger
+        from vigil.logging.mlflow_logger import MLflowLogger
         logger = MLflowLogger(experiment_name="kafka-stream")
         logger.start_run(params={"topic": args.topic, "train_chunks": args.train_chunks})
     else:
@@ -82,7 +82,7 @@ def main():
 
             if len(train_buf) >= args.train_chunks:
                 train_data = np.vstack(train_buf)
-                sentinel   = OWADDSentinel(feature_names=feat_names, top_k_features=5)
+                sentinel   = Vigil(feature_names=feat_names, top_k_features=5)
 
                 print(f"[Consumer] Fitting OWADD Sentinel on {len(train_data)} samples...")
                 t0 = time.time()

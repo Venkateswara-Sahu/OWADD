@@ -1,7 +1,7 @@
-"""Tests for the DriftDetector module."""
+﻿"""Tests for the DriftDetector module."""
 import numpy as np
 import pytest
-from owadd_sentinel.core.drift_detector import DriftDetector
+from vigil.core.drift_detector import DriftDetector
 
 
 def test_no_drift_during_warmup():

@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "owadd-sentinel"
+name = "vigil-drift"
 version = "0.1.0"
-description = "Production-ready unsupervised ML data drift detection with feature attribution, based on arXiv:2605.29834"
+description = "Vigil — unsupervised concept drift detection for network streams with feature-level attribution. Based on arXiv:2605.29834."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
@@ -44,18 +44,18 @@ dev = [
     "jupyter>=1.0.0",
 ]
 all = [
-    "owadd-sentinel[api,dashboard,mlflow,kafka,dev]"
+    "vigil-drift[api,dashboard,mlflow,kafka,dev]"
 ]
 
 [project.urls]
-Homepage = "https://github.com/Venkateswara-Sahu/OWADD"
+Homepage = "https://venkateswara-sahu.github.io/OWADD/"
 Repository = "https://github.com/Venkateswara-Sahu/OWADD"
-Documentation = "https://venkateswara-sahu.github.io/OWADD"
+Documentation = "https://venkateswara-sahu.github.io/OWADD/"
 "Bug Tracker" = "https://github.com/Venkateswara-Sahu/OWADD/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["owadd_sentinel*"]
+include = ["vigil*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

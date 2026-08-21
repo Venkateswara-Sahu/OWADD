@@ -1,5 +1,5 @@
-"""
-OWADDSentinel — Main Public API
+﻿"""
+Vigil — Main Public API
 ================================
 The top-level class that ties together all components:
   - Dual mirrored autoencoders (A and A_KC)
@@ -9,9 +9,9 @@ The top-level class that ties together all components:
 
 This is the only class users need to import for basic usage:
 
-    from owadd_sentinel import OWADDSentinel
+    from vigil import Vigil
 
-    sentinel = OWADDSentinel(n_features=50)
+    sentinel = Vigil(n_features=50)
     sentinel.fit(initial_data)
 
     result = sentinel.detect(new_batch)
@@ -23,20 +23,20 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from owadd_sentinel.attribution import AttributionResult, DriftAttributor
-from owadd_sentinel.core.autoencoder import (
+from vigil.attribution import AttributionResult, DriftAttributor
+from vigil.core.autoencoder import (
     Autoencoder,
     create_autoencoder_pair,
     train_autoencoder,
 )
-from owadd_sentinel.core.drift_detector import DriftDetector, DriftResult
-from owadd_sentinel.core.novelty_detector import NoveltyDetector, NoveltyResult
+from vigil.core.drift_detector import DriftDetector, DriftResult
+from vigil.core.novelty_detector import NoveltyDetector, NoveltyResult
 
 
 @dataclass
 class SentinelResult:
     """
-    Complete result from OWADDSentinel.detect() for a single data batch.
+    Complete result from Vigil.detect() for a single data batch.
 
     Attributes
     ----------
@@ -93,7 +93,7 @@ class SentinelResult:
         return d
 
 
-class OWADDSentinel:
+class Vigil:
     """
     Open World Autoencoding Drift Detector — Production API.
 
@@ -129,12 +129,12 @@ class OWADDSentinel:
     Example
     -------
         import pandas as pd
-        from owadd_sentinel import OWADDSentinel
+        from vigil import Vigil
 
         df = pd.read_csv("nsl_kdd_stream.csv")
         feature_cols = [c for c in df.columns if c != "label"]
 
-        sentinel = OWADDSentinel(
+        sentinel = Vigil(
             feature_names=feature_cols,
             top_k_features=5,
         )
@@ -203,7 +203,7 @@ class OWADDSentinel:
     def n_drifts_detected(self) -> int:
         return self._drift_detector.n_drifts_detected
 
-    def fit(self, initial_data: np.ndarray, verbose: bool = True) -> "OWADDSentinel":
+    def fit(self, initial_data: np.ndarray, verbose: bool = True) -> "Vigil":
         """
         Offline training phase on the first data chunk.
 
@@ -219,7 +219,7 @@ class OWADDSentinel:
 
         Returns
         -------
-        self : OWADDSentinel (for method chaining)
+        self : Vigil (for method chaining)
         """
         if self.n_features is None:
             self.n_features = initial_data.shape[1]
@@ -285,7 +285,7 @@ class OWADDSentinel:
         """
         if not self._is_fitted:
             raise RuntimeError(
-                "OWADDSentinel must be fitted before calling detect(). "
+                "Vigil must be fitted before calling detect(). "
                 "Call .fit(initial_data) first."
             )
 

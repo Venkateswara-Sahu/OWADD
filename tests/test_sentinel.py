@@ -1,7 +1,7 @@
-"""Tests for the end-to-end OWADDSentinel."""
+﻿"""Tests for the end-to-end Vigil."""
 import numpy as np
 import pytest
-from owadd_sentinel import OWADDSentinel
+from vigil import Vigil
 
 
 def make_stable_stream(n_samples=1000, n_features=10, seed=42):
@@ -17,7 +17,7 @@ def make_drifted_batch(n_samples=200, n_features=10, seed=99):
 def test_sentinel_fit_and_detect():
     """Sentinel should fit without errors and return SentinelResult."""
     data = make_stable_stream()
-    sentinel = OWADDSentinel(n_features=10)
+    sentinel = Vigil(n_features=10)
     sentinel.fit(data[:200], verbose=False)
 
     result = sentinel.detect(data[200:400])
@@ -28,7 +28,7 @@ def test_sentinel_fit_and_detect():
 
 def test_sentinel_raises_without_fit():
     """detect() before fit() must raise RuntimeError."""
-    sentinel = OWADDSentinel(n_features=10)
+    sentinel = Vigil(n_features=10)
     with pytest.raises(RuntimeError):
         sentinel.detect(np.random.randn(100, 10).astype(np.float32))
 
@@ -36,7 +36,7 @@ def test_sentinel_raises_without_fit():
 def test_sentinel_result_to_dict():
     """to_dict() should return a flat dictionary."""
     data = make_stable_stream()
-    sentinel = OWADDSentinel(n_features=10)
+    sentinel = Vigil(n_features=10)
     sentinel.fit(data[:200], verbose=False)
     result = sentinel.detect(data[200:400])
     d = result.to_dict()
@@ -50,7 +50,7 @@ def test_sentinel_attribution_on_drift():
     stable = make_stable_stream(n_samples=200, n_features=10)
     drifted = make_drifted_batch(n_samples=200, n_features=10)
 
-    sentinel = OWADDSentinel(
+    sentinel = Vigil(
         n_features=10,
         buffer_size=200,
         drift_threshold=0.3,

@@ -1,4 +1,4 @@
-"""
+﻿"""
 DAG: owadd_retrain
 ===================
 Triggered by owadd_stream_monitor when drift severity crosses threshold.
@@ -91,7 +91,7 @@ def load_recent_data(**context) -> None:
 
 def retrain_sentinel(**context) -> None:
     """Retrain OWADD Sentinel on recent data."""
-    from owadd_sentinel import OWADDSentinel
+    from vigil import Vigil
 
     ti          = context["task_instance"]
     recent_X    = np.array(ti.xcom_pull(task_ids="load_recent_data", key="recent_X"),
@@ -106,7 +106,7 @@ def retrain_sentinel(**context) -> None:
         log.info("Production model backed up to %s", MODEL_BACKUP)
 
     # Fit new candidate model
-    candidate = OWADDSentinel(
+    candidate = Vigil(
         feature_names=feat_names,
         top_k_features=5,
         buffer_size=1000,

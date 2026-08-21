@@ -30,10 +30,10 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest tests/ -v --cov=owadd_sentinel --cov-report=term-missing
+          python -m pytest tests/ -v --cov=vigil --cov-report=term-missing
 
       - name: Auto-fix ruff issues
-        run: ruff check owadd_sentinel/ --fix --unsafe-fixes
+        run: ruff check vigil/ --fix --unsafe-fixes
 
       - name: Lint with ruff (fail on remaining issues)
-        run: ruff check owadd_sentinel/
+        run: ruff check vigil/

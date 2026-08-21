@@ -1,4 +1,4 @@
-"""
+﻿"""
 DAG: owadd_stream_monitor
 ==========================
 Runs every hour to process the latest batch of network traffic through
@@ -119,7 +119,7 @@ def run_drift_detection(**context) -> dict:
                            dtype="float32")
     feat_names  = ti.xcom_pull(task_ids="load_latest_chunk", key="feature_names")
 
-    from owadd_sentinel import OWADDSentinel
+    from vigil import Vigil
 
     model_path = os.path.join(PROJECT_ROOT, "airflow", "model_checkpoint.pkl")
 
@@ -129,7 +129,7 @@ def run_drift_detection(**context) -> dict:
             sentinel = pickle.load(f)
     else:
         log.info("No checkpoint found — fitting OWADD Sentinel on current chunk (cold start)")
-        sentinel = OWADDSentinel(feature_names=feat_names, top_k_features=5)
+        sentinel = Vigil(feature_names=feat_names, top_k_features=5)
         sentinel.fit(chunk_data, verbose=False)
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         with open(model_path, "wb") as f:

@@ -1,7 +1,7 @@
-"""
+﻿"""
 OWADD Sentinel — FastAPI REST Service
 ======================================
-Exposes the OWADDSentinel as a production-ready HTTP microservice.
+Exposes the Vigil as a production-ready HTTP microservice.
 
 Endpoints:
   GET  /health          — liveness probe (for Docker/K8s health checks)
@@ -23,7 +23,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from owadd_sentinel import OWADDSentinel
+from vigil import Vigil
 from api.schemas import (
     DetectRequest,
     DetectResponse,
@@ -36,7 +36,7 @@ from api.schemas import (
 # App lifespan: initialise sentinel on startup
 # ─────────────────────────────────────────────
 
-sentinel: OWADDSentinel | None = None
+sentinel: Vigil | None = None
 chunks_processed: int = 0
 
 
@@ -44,7 +44,7 @@ chunks_processed: int = 0
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     global sentinel
-    sentinel = OWADDSentinel()
+    sentinel = Vigil()
     print("[OWADD Sentinel API] Ready. POST /fit to train, POST /detect to analyse.")
     yield
     print("[OWADD Sentinel API] Shutting down.")
@@ -119,7 +119,7 @@ def fit(request: FitRequest):
     if len(data) < 50:
         raise HTTPException(status_code=422, detail="Need at least 50 samples to train. Provide more data.")
 
-    sentinel = OWADDSentinel(
+    sentinel = Vigil(
         feature_names=request.feature_names,
         top_k_features=5,
     )

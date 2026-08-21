@@ -1,4 +1,4 @@
-"""
+﻿"""
 Autoencoder Module
 ==================
 Implements the dual mirrored fully-connected autoencoder architecture

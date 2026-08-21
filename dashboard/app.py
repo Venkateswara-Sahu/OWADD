@@ -1,4 +1,4 @@
-"""
+﻿"""
 Vigil — SOC Dashboard
 ======================
 Security Operations Center style real-time drift monitoring dashboard.
@@ -323,7 +323,7 @@ if start_btn and not st.session_state.running:
         st.session_state.y = y
         st.session_state.feature_names = feat_names
 
-    from owadd_sentinel import OWADDSentinel
+    from vigil import Vigil
     from data.stream_simulator import StreamSimulator
 
     sim = StreamSimulator(X, y, chunk_size=200,
@@ -331,7 +331,7 @@ if start_btn and not st.session_state.running:
     first = next(sim.stream(n_chunks=1))
 
     with st.spinner("Training OWADD Sentinel on initial traffic baseline..."):
-        sentinel = OWADDSentinel(feature_names=feat_names, top_k_features=5, buffer_size=400)
+        sentinel = Vigil(feature_names=feat_names, top_k_features=5, buffer_size=400)
         sentinel.fit(first.X, verbose=False)
 
     st.session_state.sentinel         = sentinel

@@ -1,8 +1,8 @@
-"""Tests for the Autoencoder module."""
+﻿"""Tests for the Autoencoder module."""
 import numpy as np
 import torch
 import pytest
-from owadd_sentinel.core.autoencoder import (
+from vigil.core.autoencoder import (
     Autoencoder,
     create_autoencoder_pair,
     train_autoencoder,
