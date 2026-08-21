@@ -742,56 +742,57 @@ async function typeTerminal(){
   out.lastChild.appendChild(cur);
 }
 
-// ── Scroll reveals ───────────────────────────────────────────────────────────
+// ── Scroll reveals (bidirectional) ─────────────────────────────────────────
 const revealObs = new IntersectionObserver((entries) => {
-  entries.forEach((e,i) => {
+  entries.forEach(e => {
     if(e.isIntersecting){
-      setTimeout(()=>{e.target.classList.add('in')}, e.target.dataset.delay||0);
-      revealObs.unobserve(e.target);
+      setTimeout(()=>{ e.target.classList.add('in'); }, parseInt(e.target.dataset.delay)||0);
+    } else {
+      e.target.classList.remove('in');
     }
   });
-},{threshold:.12});
+},{threshold:.12, rootMargin:'-40px 0px'});
 document.querySelectorAll('.reveal').forEach((el,i)=>{
   el.dataset.delay = (i%4)*80;
   revealObs.observe(el);
 });
 
-// ── Stat rings ───────────────────────────────────────────────────────────────
+// ── Stat rings (bidirectional) ───────────────────────────────────────────────
+const circ = 2*Math.PI*45; // 283
 const ringObs = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
-    if(!e.isIntersecting) return;
     const wrap = e.target;
     const ring = wrap.querySelector('.ring-fill');
     const val  = wrap.querySelector('.stat-val');
     const pct  = parseInt(ring.dataset.pct);
     const target = parseInt(val.dataset.target);
-    const circ = 2*Math.PI*45; // 283
 
-    anime({
-      targets: ring,
-      strokeDashoffset: [circ, circ*(1-pct/100)],
-      duration:1600, easing:'easeOutQuart'
-    });
-    anime({
-      targets: val, innerHTML:[0,target], round:1,
-      duration:1400, easing:'easeOutQuart',
-      update:()=>{ val.innerHTML = Math.round(val.innerHTML) }
-    });
-    ringObs.unobserve(wrap);
+    if(e.isIntersecting){
+      anime({ targets: ring, strokeDashoffset: [circ, circ*(1-pct/100)], duration:1600, easing:'easeOutQuart' });
+      anime({ targets: val, innerHTML:[0,target], round:1, duration:1400, easing:'easeOutQuart',
+        update:()=>{ val.innerHTML = Math.round(val.innerHTML); } });
+    } else {
+      // reset so it re-animates next time
+      ring.style.strokeDashoffset = circ;
+      val.innerHTML = '0';
+    }
   });
 },{threshold:.4});
 document.querySelectorAll('.stat-ring-wrap').forEach(el=>ringObs.observe(el));
 
-// ── Stack badges stagger ─────────────────────────────────────────────────────
+// ── Stack badges (bidirectional) ────────────────────────────────────────────
 const stackObs = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
-    if(!e.isIntersecting) return;
-    anime({
-      targets:'#stk-row .stk',
-      opacity:[0,1],translateY:[16,0],
-      duration:400,delay:anime.stagger(40),easing:'easeOutExpo'
-    });
-    stackObs.unobserve(e.target);
+    if(e.isIntersecting){
+      anime({
+        targets:'#stk-row .stk',
+        opacity:[0,1],translateY:[16,0],
+        duration:400,delay:anime.stagger(40),easing:'easeOutExpo'
+      });
+    } else {
+      // reset for next scroll-in
+      anime({ targets:'#stk-row .stk', opacity:0, translateY:16, duration:0 });
+    }
   });
 },{threshold:.1});
 stackObs.observe(document.getElementById('stk-row'));
