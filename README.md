@@ -105,7 +105,7 @@ pip install -e ".[dev]"
 
 ```python
 import pandas as pd
-from owadd_sentinel import OWADDSentinel
+from vigil import Vigil
 
 # Load your data
 df = pd.read_csv("your_data.csv")
@@ -113,18 +113,18 @@ feature_cols = [c for c in df.columns if c != "label"]
 X = df[feature_cols].values.astype("float32")
 
 # Initialise
-sentinel = OWADDSentinel(
+v = Vigil(
     feature_names=feature_cols,
     top_k_features=5,
 )
 
 # Phase 1: train on first batch (offline)
-sentinel.fit(X[:200])
+v.fit(X[:200])
 
 # Phase 2: process stream chunk by chunk
 chunk_size = 200
 for i in range(200, len(X), chunk_size):
-    result = sentinel.detect(X[i:i+chunk_size])
+    result = v.detect(X[i:i+chunk_size])
 
     print(result)
     # SentinelResult(chunk=3, status=⚠️  DRIFT, severity=0.93, novelty=0.0%)
@@ -201,12 +201,12 @@ pip install -e ".[mlflow]"
 python -c "
 from data.nsl_kdd_loader import load_nsl_kdd
 from data.stream_simulator import StreamSimulator
-from owadd_sentinel import OWADDSentinel
-from owadd_sentinel.logging.mlflow_logger import MLflowLogger
+from vigil import Vigil
+from vigil.logging.mlflow_logger import MLflowLogger
 
 X, y, feat = load_nsl_kdd()
 sim = StreamSimulator(X, y)
-sentinel = OWADDSentinel(feature_names=feat)
+v = Vigil(feature_names=feat)
 logger = MLflowLogger(experiment_name='nsl-kdd-stream')
 
 first = next(sim.stream(n_chunks=1))
@@ -228,7 +228,7 @@ mlflow ui   # → http://localhost:5000
 ## 🧪 Tests
 
 ```bash
-pytest tests/ -v --cov=owadd_sentinel
+pytest tests/ -v --cov=vigil
 ```
 
 ```
@@ -250,7 +250,7 @@ tests/test_sentinel.py::test_sentinel_attribution_on_drift         PASSED
 
 ```
 OWADD/
-├── owadd_sentinel/              # Core pip package
+├── vigil/                       # Core pip package (pip install vigil-drift)
 │   ├── core/
 │   │   ├── autoencoder.py       # Dual mirrored autoencoders (A and A_KC)
 │   │   ├── drift_detector.py    # Replicated T-Test drift detection
@@ -258,7 +258,7 @@ OWADD/
 │   ├── logging/
 │   │   └── mlflow_logger.py     # MLflow experiment tracking
 │   ├── attribution.py           # Feature-level drift attribution (novel)
-│   └── sentinel.py              # Main OWADDSentinel public API
+│   └── sentinel.py              # Main Vigil public API
 │
 ├── api/
 │   ├── app.py                   # FastAPI REST service
@@ -273,7 +273,7 @@ OWADD/
 │
 ├── tests/                       # 14 unit + integration tests
 ├── .github/workflows/ci.yml     # GitHub Actions CI
-└── pyproject.toml               # pip install owadd-sentinel
+└── pyproject.toml               # pip install vigil-drift
 ```
 
 ---
