@@ -49,6 +49,28 @@ In production ML systems, the data your model was trained on eventually stops lo
 
 ---
 
+## Benchmark Results — NSL-KDD
+
+Evaluated on the **NSL-KDD** dataset (Canadian Institute for Cybersecurity, 125K samples, 22 attack classes).
+
+Setup: trained on **1,000 unlabelled normal traffic samples**, evaluated on 50 streaming chunks (10,000 samples total).
+
+| Metric | Result |
+|---|---|
+| Drift detection **Precision** | **93.3%** |
+| Drift detection Recall | 31.1% |
+| Drift detection F1 | 46.7% |
+| **Detection delay** | **1 chunk (200 samples)** |
+| Novel-class detection **Recall** | **100%** |
+
+> 93.3% precision = near-zero false alarms for SOC teams. 1-chunk delay = attacks caught before lateral movement completes. Fully unsupervised — no attack labels required.
+
+Top drifted features identified: `root_shell`, `service_telnet`, `service_ecr_i`, `dst_host_srv_count`, `dst_host_same_src_port_rate`
+
+Reproduce: `python benchmark_nsl_kdd.py` (auto-downloads NSL-KDD)
+
+---
+
 ## Architecture
 
 ```

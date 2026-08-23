@@ -1,4 +1,4 @@
-﻿"""
+"""
 Vigil — Main Public API
 ================================
 The top-level class that ties together all components:
@@ -67,7 +67,7 @@ class SentinelResult:
     novelty_result: NoveltyResult
 
     def __repr__(self):
-        status = "⚠️  DRIFT" if self.drift_detected else "✅ STABLE"
+        status = "[DRIFT]" if self.drift_detected else "[STABLE]"
         return (
             f"SentinelResult(chunk={self.chunk_id}, "
             f"status={status}, "
@@ -160,7 +160,7 @@ class Vigil:
         n_replications: int = 15,
         sample_size: int = 30,
         drift_threshold: float = 0.3,
-        novelty_threshold: float = 0.02,
+        novelty_threshold: float | None = None,
         top_k_features: int = 5,
         feature_names: list | None = None,
         initial_epochs: int = 400,
@@ -261,7 +261,7 @@ class Vigil:
         self._chunk_counter = 1
 
         if verbose:
-            print("[Vigil] ✅ Fitted and ready for stream processing.")
+            print("[Vigil] OK - Fitted and ready for stream processing.")
 
         return self
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Novelty Detector Module
 ========================
 Implements KDE-based novel class recognition using the A_KC mirror autoencoder,
@@ -73,13 +73,16 @@ class NoveltyDetector:
 
     def __init__(
         self,
-        novelty_threshold: float = 0.02,
+        novelty_threshold: float | None = None,
+        threshold_percentile: float = 5.0,
         kde_bandwidth: str = "scott",
         kde_kernel: str = "gaussian",
     ):
-        self.novelty_threshold = novelty_threshold
+        self._fixed_threshold = novelty_threshold  # None = auto from percentile
+        self.threshold_percentile = threshold_percentile
         self.kde_bandwidth = kde_bandwidth
         self.kde_kernel = kde_kernel
+        self.novelty_threshold: float = novelty_threshold or 0.0  # set in fit()
 
         self._kde: KernelDensity | None = None
         self._is_fitted: bool = False
@@ -100,7 +103,7 @@ class NoveltyDetector:
         reference_errors : np.ndarray, shape (n_samples,)
             Reconstruction errors from A_KC on the initial known-class data.
         """
-        # KDE expects 2D input: reshape (n_samples,) → (n_samples, 1)
+        # KDE expects 2D input: reshape (n_samples,) -> (n_samples, 1)
         errors_2d = reference_errors.reshape(-1, 1)
 
         self._kde = KernelDensity(
@@ -108,6 +111,17 @@ class NoveltyDetector:
             kernel=self.kde_kernel,
         )
         self._kde.fit(errors_2d)
+
+        # Auto-set threshold: samples below the Nth percentile of TRAINING
+        # density are flagged novel. This makes the threshold scale correctly
+        # with the reconstruction error magnitude of each dataset.
+        if self._fixed_threshold is None:
+            log_scores = self._kde.score_samples(errors_2d)
+            density_scores = np.exp(log_scores)
+            self.novelty_threshold = float(
+                np.percentile(density_scores, self.threshold_percentile)
+            )
+
         self._is_fitted = True
 
     def detect(self, errors: np.ndarray) -> NoveltyResult:
