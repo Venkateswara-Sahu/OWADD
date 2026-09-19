@@ -67,3 +67,5 @@ def test_sentinel_attribution_on_drift():
     if result.drift_detected:
         assert result.attribution is not None
         assert len(result.attribution.top_features) <= 3
+        assert result.attribution.metadata["no_positive_delta"] is False
+        assert result.attribution.feature_contributions.sum() == pytest.approx(1.0)
