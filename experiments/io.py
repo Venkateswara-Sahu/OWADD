@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -20,6 +20,8 @@ class ResultEnvelope:
     config: dict[str, Any]
     provenance: Provenance
     metrics: dict[str, Any]
+    result_id: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 def _config_hash(config: dict[str, Any]) -> str:
@@ -51,6 +53,8 @@ def write_result_atomic(root: Path, envelope: ResultEnvelope) -> Path:
                 "config": envelope.config,
                 "provenance": asdict(envelope.provenance),
                 "metrics": envelope.metrics,
+                "result_id": envelope.result_id,
+                "metadata": envelope.metadata,
             },
             sort_keys=True,
             indent=2,
@@ -82,6 +86,8 @@ def load_completed_result(
             config=payload["config"],
             provenance=loaded_provenance,
             metrics=payload["metrics"],
+            result_id=payload.get("result_id", ""),
+            metadata=payload.get("metadata", {}),
         )
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise ResultIntegrityError(
