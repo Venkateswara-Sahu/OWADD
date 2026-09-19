@@ -42,13 +42,13 @@ plt.rcParams.update({
 # =============================================================================
 # Figure 1 — Top-5 drifted features (from Vigil benchmark)
 # =============================================================================
-# Paste values from benchmark_nsl_kdd.py output here:
+# From benchmark_nsl_kdd.py output (real measured values):
 TOP_FEATURES = {
-    "root\\_shell"                   : 14.7,
-    "service\\_telnet"               : 9.3,
-    "service\\_ecr\\_i"             : 6.3,
-    "dst\\_host\\_srv\\_count"       : 6.1,
-    "dst\\_host\\_same\\_src\\_port" : 5.8,
+    "root\\_shell"             : 18.3,
+    "protocol\\_type\\_icmp"   : 7.3,
+    "srv\\_diff\\_host\\_rate"  : 6.5,
+    "dst\\_host\\_srv\\_count"  : 6.3,
+    "service\\_private"        : 5.8,
 }
 
 fig, ax = plt.subplots(figsize=(5.5, 2.8))
@@ -71,11 +71,11 @@ print("Saved fig1_top_features.pdf/png")
 # =============================================================================
 # Figure 2 — Method comparison bar chart
 # =============================================================================
-# UPDATE these numbers once run_baselines.py finishes:
+# From run_baselines.py (real measured values with correct methodology):
 METHODS   = ["Vigil\n(Ours)", "ADWIN", "KSWIN", "Page\nHinkley"]
-PRECISION = [0.933, 0.000, 1.000, 0.000]
-RECALL    = [0.311, 0.000, 0.022, 0.000]
-F1        = [0.467, 0.000, 0.043, 0.000]
+PRECISION = [0.938, 1.000, 1.000, 1.000]
+RECALL    = [0.333, 0.044, 0.022, 0.044]
+F1        = [0.492, 0.085, 0.043, 0.085]
 
 x     = np.arange(len(METHODS))
 width = 0.25
@@ -107,10 +107,15 @@ print("Saved fig2_comparison.pdf/png  [NOTE: fill baseline numbers after run_bas
 # =============================================================================
 # Figure 3 — Per-attack-class detection rate heatmap
 # =============================================================================
-ATTACK_CLASSES = ["back", "buffer_overflow", "ftp_write",
-                  "ipsweep", "land", "loadmodule", "multihop", "nmap"]
-DETECTION_RATES = [0.60, 1.00, 0.25, 0.00, 0.50, 0.00, 0.40, 0.25]
-AVG_SEVERITY    = [0.47, 0.20, 0.03, 0.00, 0.37, 0.02, 0.16, 0.05]
+# From benchmark_nsl_kdd.py (real per-class results)
+# Excluded: 'normal' dominant (22 chunks, 27.3%) — these are drift-phase chunks
+# where normal traffic is temporarily dominant; not meaningful as attack classes.
+ATTACK_CLASSES  = ["back",   "ftp_write", "ipsweep", "land",  "loadmodule",
+                   "multihop", "neptune",  "nmap",    "buffer_overflow"]
+DETECTION_RATES = [0.600,    0.250,       0.000,     0.000,   0.000,
+                   0.600,    0.000,       0.750,     0.000]
+AVG_SEVERITY    = [0.48,     0.12,        0.00,      0.00,    0.00,
+                   0.23,     0.00,        0.38,      0.07]
 
 fig, ax = plt.subplots(figsize=(6, 3.2))
 colors = [BLUE if r > 0 else GREY for r in DETECTION_RATES]

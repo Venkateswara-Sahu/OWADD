@@ -64,11 +64,12 @@ reference distribution and the drifted stream, surfacing the exact
 network features responsible.
 Evaluated on the NSL-KDD network intrusion benchmark
 (125,973 samples, 122 features, 22 attack classes),
-Vigil achieves \textbf{93.3\% drift detection precision} and
+Vigil achieves \textbf{93.8\% drift detection precision} and
 \textbf{100\% novel-class recall}, detecting shifts within
 \textbf{one chunk (200 packets)} of injection---
 outperforming classical univariate detectors (ADWIN, KSWIN,
-Page-Hinkley) that achieve near-zero recall on the same benchmark.
+Page-Hinkley) that achieve F1~$\leq$~8.5\% on the same benchmark
+even when given ground-truth labels at inference time.
 Vigil is available at
 \url{https://pypi.org/project/vigil-drift/} and
 \url{https://github.com/Venkateswara-Sahu/OWADD}.
@@ -112,7 +113,7 @@ We present \textbf{Vigil}, which makes two contributions:
 \begin{enumerate}
   \item A \emph{production-ready, open-source implementation} of the
         dual-autoencoder drift detection framework of
-        Huang~et~al.~\cite{huang2025owadd}, extending it with
+        Komorniczak~\cite{komorniczak2026owadd}, extending it with
         a Kafka-native streaming pipeline, Airflow auto-retrain DAGs,
         MLflow experiment tracking, and an 81\% test-coverage CI/CD suite.
   \item \textbf{DriftAttributor}: a novel, label-free module that
@@ -137,7 +138,7 @@ making them poorly suited for high-dimensional feature spaces.
 \subsection{Autoencoder-Based Anomaly and Drift Detection}
 Autoencoders have been widely used for anomaly detection in network
 traffic~\cite{sakurada2014anomaly}, where high reconstruction error
-indicates out-of-distribution samples. Huang~et~al.~\cite{huang2025owadd}
+indicates out-of-distribution samples. Komorniczak~\cite{komorniczak2026owadd}
 propose a dual-autoencoder framework: an adaptive autoencoder (A)
 that tracks the current distribution, and a frozen mirror autoencoder
 (A\textsubscript{KC}) that retains the initial known-class distribution
@@ -307,9 +308,11 @@ Table~\ref{tab:results} presents precision, recall, F1, and
 detection delay across all methods.
 
 \begin{table}[!t]
-\caption{Drift Detection on NSL-KDD (50 chunks $\times$ 200 samples).
+\caption{Drift Detection Results on NSL-KDD (50 chunks $\times$ 200 samples).
   ``Delay'' is chunks after drift injection until first detection.
-  ``Attr.'' indicates feature-level attribution support.}
+  ``Attr.'' indicates feature-level attribution support.
+  Classical detectors require ground-truth labels at inference time (Labels\,=\,Yes);
+  Vigil operates with zero labels.}
 \label{tab:results}
 \centering
 \begin{tabular}{lcccccc}
@@ -317,34 +320,33 @@ detection delay across all methods.
 \textbf{Method} & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1}
   & \textbf{Delay} & \textbf{Labels?} & \textbf{Attr.?} \\
 \midrule
-\textbf{Vigil (ours)} & \textbf{93.3\%} & \textbf{31.1\%}
-  & \textbf{46.7\%} & \textbf{1 chunk} & No & \textbf{Yes} \\
-ADWIN         &  0.0\% &  0.0\% &  0.0\% & N/A     & No & No \\
-KSWIN         & 100.0\% & 2.2\% &  4.3\% & 8 chunks & No & No \\
-Page-Hinkley  &  0.0\% &  0.0\% &  0.0\% & N/A     & No & No \\
+\textbf{Vigil (ours)} & \textbf{93.8\%} & \textbf{33.3\%}
+  & \textbf{49.2\%} & \textbf{1 chunk} & \textbf{No} & \textbf{Yes} \\
+ADWIN        & 100.0\% &  4.4\% &  8.5\% & 1 chunk & Yes & No \\
+KSWIN        & 100.0\% &  2.2\% &  4.3\% & 1 chunk & Yes & No \\
+Page-Hinkley & 100.0\% &  4.4\% &  8.5\% & 1 chunk & Yes & No \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Vigil achieves \textbf{F1 = 46.7\%} with only 1 false positive out of 5
-stable chunks (precision = 93.3\%). Classical univariate detectors
-essentially fail: ADWIN and Page-Hinkley fire zero detections;
-KSWIN fires once (chunk 13, 8 chunks after drift injection)
-with recall of only 2.2\%.
+Vigil achieves \textbf{F1 = 49.2\%} with only 1 false positive out of 5
+stable chunks (precision = 93.8\%). Classical detectors, given ground-truth
+labels at inference time, achieve only F1 = 4.3--8.5\% recall: ADWIN and
+Page-Hinkley each fire on 2 of 45 drift chunks (4.4\% recall);
+KSWIN fires on 1 chunk (2.2\% recall).
 
-The fundamental reason for this disparity is dimensionality:
-the 1-NN error signal averaged across a mixed chunk (50\% normal
-+ 50\% attack) produces a weak signal that falls within the normal
-fluctuation range. Vigil's dual-autoencoder operates directly in the
-full 122-dimensional space, detecting the increased reconstruction
-difficulty caused by out-of-distribution samples.
+The fundamental reason for this disparity lies in the detection mechanism.
+Classical detectors monitor a univariate error signal (1 bit per sample).
+Although the signal changes from 0\% error rate in Phase~1 to
+$\approx$50\% in Phase~2, the detectors' adaptive windows require many
+consecutive samples at the new rate before concluding a change ---
+missing chunks whose attack mix fluctuates back toward normal between
+consecutive 200-sample windows.
+Vigil's dual-autoencoder operates jointly over all 122 dimensions simultaneously,
+capturing the full distributional shift from the first drifted chunk.
 
-Vigil's recall (31.1\%) reflects the inherent challenge of detecting
-drift from mixed chunks where attack samples may share reconstruction-error
-characteristics with normal samples (particularly subtle attacks such as
-\texttt{ipsweep} and \texttt{loadmodule}).
-This is a fundamental limitation of unsupervised, label-free detection
-rather than a failure of the approach.
+Critically, Vigil does this \emph{without any labels}, while classical
+detectors require the true attack/normal label for every incoming sample.
 
 \subsection{Novel-Class Detection}
 
@@ -362,12 +364,12 @@ KDE density scale mismatch---a bug we identify and fix in our implementation.
 \subsection{Feature Attribution Analysis}
 
 Fig.~\ref{fig:top_features} shows the top-5 features ranked by
-DriftAttributor across all 14 detected drift events.
-\texttt{root\_shell} (14.7\%) and \texttt{service\_telnet} (9.3\%)
-dominate, consistent with privilege escalation and remote service
-exploitation patterns in DoS and R2L attacks.
-The feature \texttt{service\_ecr\_i} (6.3\%) corresponds to ICMP echo
-traffic characteristic of ping-flood DoS variants.
+DriftAttributor across all 15 detected drift events.
+\texttt{root\_shell} (18.3\%) dominates---a binary flag indicating
+privilege escalation to root, characteristic of U2R and R2L attacks.
+\texttt{protocol\_type\_icmp} (7.3\%) captures ping-flood DoS traffic;
+\texttt{srv\_diff\_host\_rate} (6.5\%) reflects destination-host
+diversification patterns typical of Probe and port-scan campaigns.
 
 \begin{figure}[!t]
   \centering
@@ -395,10 +397,13 @@ traffic characteristic of ping-flood DoS variants.
 \end{figure}
 
 Table~\ref{tab:perclass} provides per-attack-class detection rates.
-Buffer-overflow (100\%) and back/DoS (60\%) are detected reliably;
-port-scan variants (ipsweep, nmap) produce smaller distributional shifts
-and are more often missed. These results directly inform which attack
-families warrant separate drift-threshold tuning in deployment.
+Probe-category attacks (\texttt{nmap}, 75\%) and mixed DoS
+(\texttt{back}, \texttt{multihop}, 60\%) are detected reliably.
+Port-scan variants with low feature-space displacement
+(\texttt{ipsweep}, \texttt{neptune}) produce reconstruction-error deltas
+below the detection threshold and are missed entirely.
+These per-class results directly expose which attack families warrant
+per-class drift-threshold tuning or ensemble attribution in production.
 
 \begin{table}[!t]
 \caption{Per-Attack-Class Detection Rate (Vigil, NSL-KDD)}
@@ -406,16 +411,17 @@ families warrant separate drift-threshold tuning in deployment.
 \centering
 \begin{tabular}{lcc}
 \toprule
-\textbf{Attack Class} & \textbf{Detection Rate} & \textbf{Avg. Severity} \\
+\textbf{Attack Class} & \textbf{Detection Rate} & \textbf{Avg.~Severity} \\
 \midrule
-buffer\_overflow   & 100.0\% & 0.20 \\
-back (DoS)         &  60.0\% & 0.47 \\
-land               &  50.0\% & 0.37 \\
-multihop           &  40.0\% & 0.16 \\
-ftp\_write         &  25.0\% & 0.03 \\
-nmap               &  25.0\% & 0.05 \\
-ipsweep            &   0.0\% & 0.00 \\
-loadmodule         &   0.0\% & 0.02 \\
+nmap             & 75.0\% & 0.38 \\
+back             & 60.0\% & 0.48 \\
+multihop         & 60.0\% & 0.23 \\
+ftp\_write       & 25.0\% & 0.12 \\
+buffer\_overflow &  0.0\% & 0.07 \\
+land             &  0.0\% & 0.00 \\
+loadmodule       &  0.0\% & 0.00 \\
+neptune          &  0.0\% & 0.00 \\
+ipsweep          &  0.0\% & 0.00 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -452,11 +458,14 @@ Vigil ships as a complete MLOps system beyond the core library:
 \section{Discussion}
 
 \textbf{Precision vs. Recall trade-off.}
-Vigil's 93.3\% precision with 31.1\% recall reflects a deliberate
+Vigil's 93.8\% precision with 33.3\% recall reflects a deliberate
 design for low false-alarm rate in SOC environments, where alert fatigue
-is a primary operational concern. The drift threshold $\delta$ can be
-lowered to increase recall at the cost of precision, providing a
-tuneable operating point.
+is a primary operational concern. The key insight from Table~\ref{tab:results}
+is that classical detectors (ADWIN, KSWIN, Page-Hinkley), \emph{even when
+given ground-truth labels at inference time}, achieve only F1 $\leq$ 8.5\%,
+because their univariate error signal lacks the resolution to discriminate
+mixed-attack chunks. Vigil's multivariate reconstruction approach achieves
+5.8$\times$ higher F1 without any labels---a qualitatively different capability.
 
 \textbf{Limitations.}
 (1)~Recall is constrained by the mixed-chunk evaluation protocol;
@@ -483,11 +492,14 @@ Our primary contribution, \textbf{DriftAttributor}, ranks input features
 by their per-sample reconstruction error increase at the time of drift,
 providing actionable intelligence to SOC analysts without any labels.
 
-On NSL-KDD, Vigil achieves 93.3\% drift detection precision,
-100\% novel-class recall, and 1-chunk detection delay---dramatically
-outperforming classical univariate detectors that achieve near-zero recall
-on the same benchmark. We also identify and fix a critical KDE
-threshold bug in the base framework that previously prevented
+On NSL-KDD, Vigil achieves 93.8\% drift detection precision,
+100\% novel-class recall, and 1-chunk detection delay. Classical univariate
+detectors (ADWIN, KSWIN, Page-Hinkley) achieve F1 $\leq$ 8.5\% even
+when supplied ground-truth labels at inference time, demonstrating that
+the multivariate reconstruction-error signal is fundamentally superior
+for high-dimensional network traffic.
+We also identify and fix a critical KDE threshold bug in the base
+framework~\cite{komorniczak2026owadd} that previously prevented
 novel-class detection entirely.
 
 Vigil is released under the MIT licence and is available on PyPI
