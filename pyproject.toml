@@ -43,9 +43,19 @@ dev = [
     "ruff>=0.0.285",
     "jupyter>=1.0.0",
 ]
-all = [
-    "vigil-drift[api,dashboard,mlflow,kafka,dev]"
+research = [
+    "matplotlib>=3.8.0",
+    "psutil>=5.9.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0.1",
+    "river>=0.21.0",
 ]
+all = [
+    "vigil-drift[api,dashboard,mlflow,kafka,dev,research]"
+]
+
+[project.scripts]
+vigil-bench = "experiments.cli:main"
 
 [project.urls]
 Homepage = "https://venkateswara-sahu.github.io/OWADD/"
@@ -55,7 +65,7 @@ Documentation = "https://venkateswara-sahu.github.io/OWADD/"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["vigil*"]
+include = ["vigil*", "experiments*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

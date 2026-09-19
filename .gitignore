@@ -69,3 +69,11 @@ airflow.cfg
 airflow.db
 standalone_admin_password.txt
 webserver_config.py
+
+# Research artifacts
+artifacts/raw_results/
+artifacts/cache/
+artifacts/datasets/
+!artifacts/manifests/
+!artifacts/summaries/
+!artifacts/figures/
