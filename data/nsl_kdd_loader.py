@@ -85,6 +85,10 @@ def load_nsl_kdd(split: str = "train", force_download: bool = False):
     """
     Load and preprocess the NSL-KDD dataset.
 
+    This legacy loader fits preprocessing on the requested split. Research
+    evaluation must use experiments.datasets.nsl_kdd.prepare_nsl_kdd instead,
+    which fits transforms only on reference traffic and rejects split overlap.
+
     Preprocessing steps:
     1. One-hot encode categorical columns (protocol_type, service, flag)
     2. Normalise numeric columns to [0, 1] range
