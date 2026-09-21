@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 from typing import Iterable
 
@@ -19,6 +20,14 @@ def _load_records(root: Path) -> list[dict[str, object]]:
     for path in sorted(root.rglob("*.json")):
         if path.name == "failure.json":
             continue
+        marker = path.with_suffix(".complete")
+        if not marker.exists():
+            continue
+        if (
+            marker.read_text(encoding="ascii").strip()
+            != sha256(path.read_bytes()).hexdigest()
+        ):
+            raise AggregationIntegrityError(f"result checksum mismatch: {path}")
         payload = json.loads(path.read_text(encoding="utf-8"))
         if {"config", "provenance", "metrics"}.issubset(payload):
             records.append(payload)
@@ -79,6 +88,17 @@ def aggregate_results(
             }
         )
     frame = pd.DataFrame(rows)
+    for _, scenario in frame.groupby(
+        ["dataset", "shift_family", "magnitude"], dropna=False
+    ):
+        pairs = list(zip(scenario["method"], scenario["seed"]))
+        missing = sorted(expected - set(pairs))
+        if missing:
+            raise AggregationIntegrityError(
+                f"missing combinations within scenario: {missing}"
+            )
+        if len(pairs) != len(set(pairs)):
+            raise AggregationIntegrityError("duplicate method/seed within scenario")
     comparison_keys = ["dataset", "seed", "shift_family", "magnitude"]
     for _, paired in frame.groupby(comparison_keys, dropna=False):
         if paired["manifest_hash"].nunique() != 1:
@@ -114,12 +134,21 @@ def aggregate_results(
         )
     summary = pd.DataFrame(output)
     if reference_method in methods:
-        reference = frame[frame["method"] == reference_method].set_index(
-            comparison_keys
-        )["value"]
         for index, row in summary.iterrows():
-            candidate_rows = frame[frame["method"] == row["method"]].set_index(
-                comparison_keys
+            scenario = frame
+            for column in ("dataset", "shift_family", "magnitude"):
+                scenario = scenario.loc[
+                    (
+                        scenario[column].isna()
+                        if pd.isna(row[column])
+                        else scenario[column].eq(row[column])
+                    )
+                ]
+            reference = scenario[scenario["method"] == reference_method].set_index(
+                "seed"
+            )["value"]
+            candidate_rows = scenario[scenario["method"] == row["method"]].set_index(
+                "seed"
             )["value"]
             shared = reference.index.intersection(candidate_rows.index)
             summary.loc[index, "paired_effect_vs_reference"] = paired_effect_size(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 
 import numpy as np
@@ -41,6 +42,9 @@ def write_record(
         },
     }
     path.write_text(json.dumps(payload, allow_nan=True), encoding="utf-8")
+    path.with_suffix(".complete").write_text(
+        sha256(path.read_bytes()).hexdigest(), encoding="ascii"
+    )
     return path
 
 
@@ -49,6 +53,52 @@ def test_aggregation_rejects_missing_seed(tmp_path: Path) -> None:
 
     with pytest.raises(AggregationIntegrityError, match="missing combinations"):
         aggregate_results(tmp_path, expected_methods={"vigil"}, expected_seeds={0, 1})
+
+
+def test_aggregation_ignores_unfinished_result(tmp_path):
+    path = write_record(tmp_path, method="vigil", seed=0, value=0.5)
+    path.with_suffix(".complete").unlink()
+    with pytest.raises(AggregationIntegrityError, match="no result"):
+        aggregate_results(tmp_path, {"vigil"}, {0})
+
+
+def test_aggregation_rejects_changed_result(tmp_path):
+    path = write_record(tmp_path, method="vigil", seed=0, value=0.5)
+    path.write_text(path.read_text().replace("0.5", "0.9"), encoding="utf-8")
+    with pytest.raises(AggregationIntegrityError, match="checksum"):
+        aggregate_results(tmp_path, {"vigil"}, {0})
+
+
+def test_each_scenario_requires_every_seed(tmp_path):
+    for directory, seed in (("a", 0), ("b", 1)):
+        folder = tmp_path / directory
+        folder.mkdir()
+        path = write_record(folder, method="vigil", seed=seed, value=0.5)
+        payload = json.loads(path.read_text())
+        payload["config"]["params"]["magnitude"] = seed + 1
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        path.with_suffix(".complete").write_text(sha256(path.read_bytes()).hexdigest())
+    with pytest.raises(AggregationIntegrityError, match="missing combinations"):
+        aggregate_results(tmp_path, {"vigil"}, {0, 1})
+
+
+def test_effect_sizes_do_not_pool_different_scenarios(tmp_path):
+    for magnitude, values in ((1, (0.6, 0.8)), (2, (0.4, 0.2))):
+        folder = tmp_path / str(magnitude)
+        folder.mkdir()
+        for seed in (0, 1):
+            for method, value in (("vigil", 0.5), ("ks", values[seed])):
+                path = write_record(folder, method=method, seed=seed, value=value)
+                payload = json.loads(path.read_text())
+                payload["config"]["params"]["magnitude"] = magnitude
+                path.write_text(json.dumps(payload), encoding="utf-8")
+                path.with_suffix(".complete").write_text(
+                    sha256(path.read_bytes()).hexdigest()
+                )
+    summary = aggregate_results(tmp_path, {"vigil", "ks"}, {0, 1})
+    candidate = summary[summary.method == "ks"].set_index("magnitude")
+    assert candidate.loc[1, "paired_effect_vs_reference"] == pytest.approx(2**0.5)
+    assert candidate.loc[2, "paired_effect_vs_reference"] == pytest.approx(-(2**0.5))
 
 
 @pytest.mark.parametrize(

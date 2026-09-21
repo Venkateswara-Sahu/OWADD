@@ -29,9 +29,7 @@ def _config_hash(config: dict[str, Any]) -> str:
     return sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-def _result_path(
-    root: Path, config_hash: str, provenance_hash: str
-) -> Path:
+def _result_path(root: Path, config_hash: str, provenance_hash: str) -> Path:
     return root / config_hash / provenance_hash / "result.json"
 
 
@@ -45,7 +43,8 @@ def write_result_atomic(root: Path, envelope: ResultEnvelope) -> Path:
     )
     result_path.parent.mkdir(parents=True, exist_ok=True)
     marker = result_path.with_suffix(".complete")
-    marker.unlink(missing_ok=True)
+    if marker.exists():
+        raise ResultIntegrityError(f"completed result already exists: {result_path}")
     temporary = result_path.with_name(f".{result_path.name}.{uuid4().hex}.tmp")
     try:
         encoded = json.dumps(
@@ -62,7 +61,9 @@ def write_result_atomic(root: Path, envelope: ResultEnvelope) -> Path:
         )
         temporary.write_text(encoded, encoding="utf-8")
         temporary.replace(result_path)
-        marker.write_text("complete\n", encoding="ascii")
+        marker.write_text(
+            sha256(result_path.read_bytes()).hexdigest() + "\n", encoding="ascii"
+        )
     finally:
         temporary.unlink(missing_ok=True)
     return result_path
@@ -93,6 +94,11 @@ def load_completed_result(
         raise ResultIntegrityError(
             f"invalid result JSON at {result_path}: {exc}"
         ) from exc
+    if (
+        marker.read_text(encoding="ascii").strip()
+        != sha256(result_path.read_bytes()).hexdigest()
+    ):
+        raise ResultIntegrityError(f"completed result checksum mismatch: {result_path}")
     if envelope.config != config.canonical_dict():
         raise ResultIntegrityError("completed result configuration does not match")
     if envelope.provenance.identity_hash != provenance.identity_hash:

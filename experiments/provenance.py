@@ -27,6 +27,7 @@ class Provenance:
     dependency_versions: dict[str, str]
     dataset_checksums: dict[str, str]
     captured_at_utc: str
+    source_tree_hash: str = ""
 
     def canonical_dict(self, *, include_timestamp: bool = True) -> dict[str, object]:
         values = asdict(self)
@@ -36,10 +37,7 @@ class Provenance:
 
     @property
     def identity_hash(self) -> str:
-        identity = {
-            "git_commit": self.git_commit,
-            "dataset_checksums": self.dataset_checksums,
-        }
+        identity = self.canonical_dict(include_timestamp=False)
         payload = json.dumps(identity, sort_keys=True, separators=(",", ":"))
         return sha256(payload.encode("utf-8")).hexdigest()[:16]
 
@@ -68,7 +66,15 @@ def capture_provenance(dataset_paths: Sequence[Path]) -> Provenance:
     """Capture reproducibility metadata for the current process and datasets."""
 
     dependencies: dict[str, str] = {}
-    for package in ("numpy", "pandas", "scipy", "scikit-learn", "torch"):
+    for package in (
+        "numpy",
+        "pandas",
+        "scipy",
+        "scikit-learn",
+        "torch",
+        "river",
+        "pyyaml",
+    ):
         try:
             dependencies[package] = metadata.version(package)
         except metadata.PackageNotFoundError:
@@ -78,6 +84,32 @@ def capture_provenance(dataset_paths: Sequence[Path]) -> Provenance:
         str(path.resolve()): sha256_file(path)
         for path in sorted(dataset_paths, key=lambda item: str(item.resolve()))
     }
+    repository = Path(_git_output("rev-parse", "--show-toplevel"))
+    listed = (
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "ls-files",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "-z",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        .stdout.decode("utf-8")
+        .split("\0")
+    )
+    source_digest = sha256()
+    for name in sorted(set(listed) - {""}):
+        path = repository / name
+        source_digest.update(name.encode("utf-8") + b"\0")
+        source_digest.update(
+            (sha256_file(path) if path.is_file() else "missing").encode("ascii") + b"\0"
+        )
     return Provenance(
         git_commit=_git_output("rev-parse", "HEAD"),
         git_dirty=bool(_git_output("status", "--porcelain")),
@@ -88,4 +120,5 @@ def capture_provenance(dataset_paths: Sequence[Path]) -> Provenance:
         dependency_versions=dependencies,
         dataset_checksums=checksums,
         captured_at_utc=datetime.now(timezone.utc).isoformat(),
+        source_tree_hash=source_digest.hexdigest(),
     )

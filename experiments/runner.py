@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import random
 import traceback
+from hashlib import sha256
 
 import numpy as np
 import torch
@@ -50,9 +51,7 @@ def _write_failure(
     temporary.replace(failure)
 
 
-def run_experiment(
-    config: ExperimentConfig, output_root: Path
-) -> ResultEnvelope:
+def run_experiment(config: ExperimentConfig, output_root: Path) -> ResultEnvelope:
     """Run one validated configuration or resume an exact completed result."""
 
     _seed_everything(config.seed)
@@ -63,6 +62,10 @@ def run_experiment(
     try:
         if config.dataset != "synthetic":
             raise ValueError(f"unsupported dataset: {config.dataset}")
+        if config.method != "vigil":
+            raise ValueError(
+                f"unsupported method: {config.method}; this runner currently supports Vigil smoke tests only"
+            )
         params = config.params
         n_reference = int(params.get("n_reference", 200))
         n_chunks = int(params.get("n_chunks", 6))
@@ -118,15 +121,25 @@ def run_experiment(
             config=config.canonical_dict(),
             provenance=provenance,
             metrics={
+                "primary": attribution_metrics["ndcg@5"],
                 "attribution": attribution_metrics,
                 "events": event_metrics,
                 "manifest": {
-                    "hash": result_id,
+                    "hash": sha256(
+                        reference.tobytes()
+                        + b"".join(chunk.X.tobytes() for chunk in chunks)
+                        + json.dumps(asdict(manifest), sort_keys=True).encode()
+                    ).hexdigest(),
                     "events": [asdict(event) for event in manifest.events],
                 },
             },
             result_id=result_id,
-            metadata={"resumed": False, "uses_labels": False},
+            metadata={
+                "resumed": False,
+                "uses_labels": False,
+                "primary_metric": "ndcg@5",
+                "stage": "smoke_only",
+            },
         )
         write_result_atomic(output_root, envelope)
         return envelope
