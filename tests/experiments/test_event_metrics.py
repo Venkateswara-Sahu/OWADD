@@ -54,6 +54,11 @@ def test_no_alerts_and_no_events_have_explicit_undefined_metrics() -> None:
     assert no_events.event_recall is None
 
 
+def test_known_events_with_no_alerts_have_zero_f1():
+    result = match_events([event(3)], [], tolerance_chunks=1)
+    assert result.event_f1 == 0.0
+
+
 def test_overlapping_windows_are_rejected_by_default() -> None:
     with pytest.raises(ValueError, match="overlapping event windows"):
         match_events([event(5, "a"), event(6, "b")], [], tolerance_chunks=2)

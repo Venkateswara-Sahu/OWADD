@@ -4,6 +4,20 @@ import pandas as pd
 from experiments.datasets.nsl_kdd import fit_preprocessor
 
 
+def test_validation_preparation_requires_no_test_frame():
+    from experiments.datasets.nsl_kdd import prepare_frames
+
+    train = pd.DataFrame(
+        {"duration": range(60), "label": ["normal"] * 40 + ["attack"] * 20}
+    )
+    dataset = prepare_frames(train, None, seed=7)
+    assert len(dataset.reference.X) > 0
+    assert len(dataset.validation.X) > 0
+    assert dataset.test.X.shape == (0, 1)
+    assert dataset.test.row_ids == ()
+    assert dataset.audit["test_loaded"] is False
+
+
 def test_prepare_frames_keeps_duplicates_and_future_categories_out_of_training():
     from experiments.datasets.nsl_kdd import prepare_frames
 

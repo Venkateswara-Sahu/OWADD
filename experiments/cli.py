@@ -16,6 +16,12 @@ def _parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run")
     run.add_argument("--config", type=Path, required=True)
     run.add_argument("--output", type=Path, required=True)
+    run.add_argument("--mode", choices=("smoke", "tune", "test"), default="smoke")
+    run.add_argument("--train", type=Path)
+    run.add_argument("--test", type=Path)
+    run.add_argument(
+        "--frozen", type=Path, default=Path("artifacts/manifests/nsl_kdd_frozen.json")
+    )
 
     aggregate = commands.add_parser("aggregate")
     aggregate.add_argument("--input", type=Path, required=True)
@@ -45,6 +51,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "run":
             config = ExperimentConfig.from_yaml(args.config)
+            if config.dataset == "nsl_kdd":
+                from experiments.network import run_nsl_kdd_mode
+
+                if args.train is None or args.test is None:
+                    raise ValueError("NSL-KDD requires --train and --test file paths")
+                results = run_nsl_kdd_mode(
+                    config,
+                    args.output,
+                    train_path=args.train,
+                    test_path=args.test,
+                    mode=args.mode,
+                    frozen_path=args.frozen,
+                )
+                for result in results:
+                    print(result.result_id)
+                return 0
+            if args.mode != "smoke":
+                raise ValueError("synthetic runner currently supports smoke mode only")
             result = run_experiment(config, args.output)
             print(result.result_id)
             return 0

@@ -41,7 +41,7 @@ def fit_preprocessor(
 
 def prepare_frames(
     train: pd.DataFrame,
-    test: pd.DataFrame,
+    test: pd.DataFrame | None,
     *,
     seed: int = 42,
     validation_fraction: float = 0.25,
@@ -55,13 +55,13 @@ def prepare_frames(
     if not 0 < validation_fraction < 1:
         raise ValueError("validation_fraction must be between zero and one")
     columns = [c for c in train.columns if c not in {"label", "difficulty"}]
-    if set(test.columns) != set(train.columns):
+    if test is not None and set(test.columns) != set(train.columns):
         raise ValueError("training and test schemas differ")
     categorical = [c for c in columns if c in {"protocol_type", "service", "flag"}]
     numerical = [c for c in columns if c not in categorical]
     frames = []
     removed = []
-    for source in (train, test):
+    for source in (train, test if test is not None else train.iloc[:0]):
         frame = source.copy()
         if frame[columns + ["label"]].isna().any().any():
             raise ValueError("missing feature or label values")
@@ -85,7 +85,12 @@ def prepare_frames(
     )
     reference = train_clean.loc[normal & (fractions >= validation_fraction)]
     validation = train_clean.loc[~train_clean["_row_id"].isin(reference["_row_id"])]
-    if any(frame.empty for frame in (reference, validation, test_clean)):
+    required = (
+        (reference, validation, test_clean)
+        if test is not None
+        else (reference, validation)
+    )
+    if any(frame.empty for frame in required):
         raise ValueError("reference, validation and test pools must all be non-empty")
     validate_disjoint_ids(
         {
@@ -111,7 +116,11 @@ def prepare_frames(
         cursor += 1
 
     def convert(frame):
-        values = transformer.transform(frame[columns]).astype(np.float32)
+        values = (
+            transformer.transform(frame[columns]).astype(np.float32)
+            if len(frame)
+            else np.empty((0, len(names)), dtype=np.float32)
+        )
         if not np.isfinite(values).all():
             raise ValueError("non-finite transformed features")
         return DatasetSplit(
@@ -119,6 +128,7 @@ def prepare_frames(
         )
 
     audit = {
+        "test_loaded": test is not None,
         "train_duplicates_removed": removed[0],
         "test_duplicates_removed": removed[1],
         "test_overlap_removed": int(overlap.sum()),
@@ -155,14 +165,18 @@ def prepare_frames(
 
 
 def prepare_nsl_kdd(
-    train_path: Path, test_path: Path, *, seed: int = 42
+    train_path: Path, test_path: Path, *, seed: int = 42, include_test: bool = True
 ) -> PreparedDataset:
     from dataclasses import replace
     from data.nsl_kdd_loader import COLUMN_NAMES
 
     dataset = prepare_frames(
         pd.read_csv(train_path, header=None, names=COLUMN_NAMES),
-        pd.read_csv(test_path, header=None, names=COLUMN_NAMES),
+        (
+            pd.read_csv(test_path, header=None, names=COLUMN_NAMES)
+            if include_test
+            else None
+        ),
         seed=seed,
     )
     return replace(

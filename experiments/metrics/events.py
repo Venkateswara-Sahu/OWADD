@@ -81,10 +81,8 @@ def match_events(
     total_alert_penalties = matched + false_alarms + duplicates
     precision = matched / total_alert_penalties if total_alert_penalties else None
     recall = matched / len(ordered_events) if ordered_events else None
-    if precision is None or recall is None or precision + recall == 0:
-        f1 = None if precision is None or recall is None else 0.0
-    else:
-        f1 = 2 * precision * recall / (precision + recall)
+    denominator = len(ordered_events) + total_alert_penalties
+    f1 = 2 * matched / denominator if denominator else None
     false_alarm_rate = (
         false_alarms / total_samples * 10_000
         if total_samples is not None and total_samples > 0

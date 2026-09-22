@@ -1,0 +1,13 @@
+dataset: nsl_kdd
+method: vigil
+seed: 42
+split: validation
+chunk_size: 200
+tolerance_chunks: 2
+params:
+  n_reference: 2000
+  initial_epochs: 20
+  interval_chunks: 5
+  attack_classes: [neptune, satan]
+  drift_threshold: 0.3
+  buffer_size: 1000
