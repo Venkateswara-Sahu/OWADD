@@ -1,0 +1,4 @@
+# Preparation only. Evaluation thresholds are not selected by this configuration.
+dataset: cicids2017_improved_cns2022
+read_chunk_rows: 25000
+attempted_policy: benign

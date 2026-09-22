@@ -13,6 +13,10 @@ from experiments.runner import run_experiment
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vigil-bench")
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare = commands.add_parser("prepare")
+    prepare.add_argument("--config", type=Path, required=True)
+    prepare.add_argument("--archive", type=Path, required=True)
+    prepare.add_argument("--output", type=Path, required=True)
     run = commands.add_parser("run")
     run.add_argument("--config", type=Path, required=True)
     run.add_argument("--output", type=Path, required=True)
@@ -49,6 +53,31 @@ def _discover_expected(root: Path) -> tuple[set[str], set[int]]:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "prepare":
+            import yaml
+            from experiments.datasets.cicids2017_improved import prepare_archive
+
+            settings = yaml.safe_load(args.config.read_text(encoding="utf-8"))
+            if not isinstance(settings, dict) or set(settings) != {
+                "dataset",
+                "read_chunk_rows",
+                "attempted_policy",
+            }:
+                raise ValueError(
+                    "preparation requires exactly dataset, read_chunk_rows, attempted_policy"
+                )
+            if (
+                settings["dataset"] != "cicids2017_improved_cns2022"
+                or settings["attempted_policy"] != "benign"
+            ):
+                raise ValueError("unsupported preparation protocol")
+            if type(settings["read_chunk_rows"]) is not int:
+                raise ValueError("read_chunk_rows must be an integer")
+            prepare_archive(
+                args.archive, args.output, read_chunk_rows=settings["read_chunk_rows"]
+            )
+            print(args.output / "manifest.json")
+            return 0
         if args.command == "run":
             config = ExperimentConfig.from_yaml(args.config)
             if config.dataset == "nsl_kdd":
