@@ -1,3 +1,5 @@
+# ruff: noqa: PLR2004
+# Literal expected counts and SHA-256 length are deliberate fixture assertions.
 import numpy as np
 import pandas as pd
 
@@ -16,6 +18,7 @@ def test_validation_preparation_requires_no_test_frame():
     assert dataset.test.X.shape == (0, 1)
     assert dataset.test.row_ids == ()
     assert dataset.audit["test_loaded"] is False
+    assert len(dataset.audit["preprocessing_sha256"]) == 64
 
 
 def test_prepare_frames_keeps_duplicates_and_future_categories_out_of_training():
@@ -92,6 +95,7 @@ def test_stream_does_not_reuse_rows_and_records_returns():
 
 def test_network_stream_rejects_insufficient_rows():
     import pytest
+
     from experiments.datasets.base import DatasetSplit
     from experiments.datasets.nsl_kdd import build_network_stream
 

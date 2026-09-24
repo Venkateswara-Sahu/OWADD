@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+import json
+import pickle
 from collections.abc import Sequence
 from hashlib import sha256
-import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+
 from experiments.datasets.base import (
     DatasetSplit,
     PreparedDataset,
     validate_disjoint_ids,
 )
 from experiments.provenance import sha256_file
+
+MIN_CHUNK_SIZE = 2
 
 
 def fit_preprocessor(
@@ -63,7 +67,7 @@ def prepare_frames(
     removed = []
     for source in (train, test if test is not None else train.iloc[:0]):
         frame = source.copy()
-        if frame[columns + ["label"]].isna().any().any():
+        if frame[[*columns, "label"]].isna().any().any():
             raise ValueError("missing feature or label values")
         frame[numerical] = frame[numerical].astype(float)
         if not np.isfinite(frame[numerical].to_numpy()).all():
@@ -128,6 +132,9 @@ def prepare_frames(
         )
 
     audit = {
+        "preprocessing_sha256": sha256(
+            pickle.dumps(transformer, protocol=5)
+        ).hexdigest(),
         "test_loaded": test is not None,
         "train_duplicates_removed": removed[0],
         "test_duplicates_removed": removed[1],
@@ -168,6 +175,7 @@ def prepare_nsl_kdd(
     train_path: Path, test_path: Path, *, seed: int = 42, include_test: bool = True
 ) -> PreparedDataset:
     from dataclasses import replace
+
     from data.nsl_kdd_loader import COLUMN_NAMES
 
     dataset = prepare_frames(
@@ -200,7 +208,7 @@ def build_network_stream(
     """
     from experiments.streams.types import ChangeEvent, StreamChunk, StreamManifest
 
-    if chunk_size < 2 or interval_chunks < 1 or not attack_classes:
+    if chunk_size < MIN_CHUNK_SIZE or interval_chunks < 1 or not attack_classes:
         raise ValueError(
             "positive intervals, chunk_size >= 2 and attack classes required"
         )
