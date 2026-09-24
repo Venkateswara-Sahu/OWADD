@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
 import json
-from pathlib import Path
 import random
 import traceback
+from dataclasses import asdict, replace
 from hashlib import sha256
+from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 import torch
@@ -22,6 +23,89 @@ from experiments.metrics.events import match_events
 from experiments.provenance import capture_provenance
 from experiments.streams.controlled import ControlledStreamBuilder, ShiftSpec
 from vigil import Vigil
+
+
+def run_novelty_evaluation(
+    config, protocol, test_scores, frozen_path, model_id, output_root
+):
+    """Persist evaluation of externally fitted, frozen scores; does not fit a model.
+
+    The caller owns a truthful model identity and training-only preprocessing.
+    Natural prevalence and controlled-prevalence results are reported separately.
+    """
+    from experiments.novelty_protocol import evaluate_frozen
+    from experiments.novelty_scores import load_scores, save_scores
+    from experiments.provenance import sha256_file
+
+    frozen_path, output_root = Path(frozen_path), Path(output_root)
+    if config.split != "test" or set(config.params) != {"n_prevalence_samples"}:
+        raise ValueError("test split and explicit n_prevalence_samples required")
+    natural = evaluate_frozen(frozen_path, protocol, test_scores, model_id=model_id)
+    provenance = replace(
+        capture_provenance([]),
+        dataset_checksums={
+            "novelty_protocol": protocol.identity,
+            "novelty_freeze": sha256_file(frozen_path),
+        },
+    )
+    directory = Path(output_root) / config.config_hash / provenance.identity_hash
+    completed = load_completed_result(output_root, config, provenance)
+    if completed is not None:
+        receipt = completed.metadata["novelty_scores"]
+        name = receipt["file"]
+        if Path(name).name != name or not name.endswith(".npz"):
+            raise ValueError("invalid score evidence filename")
+        labels, scores = load_scores(directory / name, receipt)
+        if not np.array_equal(labels, protocol.test.labels) or not np.array_equal(
+            scores, test_scores.values
+        ):
+            raise ValueError(
+                "resumed score evidence differs from supplied frozen-model scores"
+            )
+        return replace(completed, metadata={**completed.metadata, "resumed": True})
+    grid = []
+    for prevalence in (0.01, 0.05, 0.1, 0.25, 0.5):
+        result = evaluate_frozen(
+            frozen_path,
+            protocol,
+            test_scores,
+            model_id=model_id,
+            prevalence=prevalence,
+            n_samples=config.params["n_prevalence_samples"],
+            seed=config.seed,
+        )
+        grid.append(
+            {
+                "prevalence": prevalence,
+                "n_novel": result.true_positives + result.false_negatives,
+                "metrics": asdict(result),
+            }
+        )
+    score_path = directory / f"novelty_scores-{uuid4().hex}.npz"
+    receipt = save_scores(score_path, protocol.test.labels, test_scores.values)
+    receipt["file"] = score_path.name
+    result = ResultEnvelope(
+        config.canonical_dict(),
+        provenance,
+        {
+            "primary": natural.average_precision,
+            "natural": asdict(natural),
+            "prevalence_grid": grid,
+            "manifest": {"hash": protocol.identity},
+        },
+        result_id=f"{config.config_hash}-{provenance.identity_hash}",
+        metadata={
+            "stage": "test",
+            "primary_metric": "sample_average_precision",
+            "resumed": False,
+            "model_id": model_id,
+            "novelty_scores": receipt,
+            "threshold_selected_on": "validation",
+            "evaluation_uses_labels": True,
+        },
+    )
+    write_result_atomic(output_root, result)
+    return result
 
 
 def _seed_everything(seed: int) -> None:
@@ -64,7 +148,8 @@ def run_experiment(config: ExperimentConfig, output_root: Path) -> ResultEnvelop
             raise ValueError(f"unsupported dataset: {config.dataset}")
         if config.method != "vigil":
             raise ValueError(
-                f"unsupported method: {config.method}; this runner currently supports Vigil smoke tests only"
+                f"unsupported method: {config.method}; "
+                "this runner currently supports Vigil smoke tests only"
             )
         params = config.params
         n_reference = int(params.get("n_reference", 200))
