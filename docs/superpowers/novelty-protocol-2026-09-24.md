@@ -30,7 +30,19 @@ The integration test has 20 known reference records and separate validation/test
 
 ## Remaining research work
 
-Model adapters must supply stable, higher-is-novel scores (prefer log-density rather than exponentiated densities that may underflow), with fitted-state identities. Choose actual dataset class sets and a validation population before running a study. The API does not automatically nominate attack labels as novel classes or treat mean shifts as novel-class ground truth. Multi-seed model fitting, baseline comparisons, actual novelty experiments, duplicate-policy sensitivity and final whole-branch review remain outstanding.
+The frozen Vigil scoring adapter below supplies higher-is-novel scores and fitted-state identities. Choose actual dataset class sets and a validation population before running a study. The API does not automatically nominate attack labels as novel classes or treat mean shifts as novel-class ground truth. Multi-seed model fitting, baseline comparisons, actual novelty experiments, duplicate-policy sensitivity and final whole-branch review remain outstanding.
+
+## Frozen model scoring
+
+`FrozenNoveltyScorer.from_vigil(fitted_vigil, preprocessing_id=..., reference_id=protocol.reference.identity, batch_size=1024)` copies the fitted A_KC and KDE into an independent CPU inference snapshot. It never invokes drift detection, adaptation, training or threshold selection. Refitting the source Vigil instance does not change the snapshot. The underlying public Vigil API remains unchanged.
+
+Scores are **negative log KDE density of per-sample reconstruction MSE**, so higher means more novel. Keeping log-density avoids the ranking ties caused by exponentiating very small densities to zero. It does not promise that all possible finite inputs yield finite scores: nonfinite features, float32 conversion overflow, reconstruction overflow and nonfinite KDE output are rejected explicitly. Both low-error and high-error low-density regions can be novel under KDE; this is not simply a high-reconstruction-error detector.
+
+Inference converts and processes at most `batch_size` rows at a time, retaining a one-dimensional score vector. This bounds inference intermediates, not the caller's input storage, fitted KDE, model fitting, or the dense protocol API. Inputs must have the same feature order and training-fitted preprocessing as reference data.
+
+`scorer.model_id` binds the model architecture, tensor weights, complete pickled fitted KDE state (hashed in memory only), preprocessing/reference identifiers, score convention, execution batch size and Torch/scikit-learn versions. It is runtime-specific, not a cross-version portable model format. No pickle file is loaded or written. Callers must use a checksum of the actual preprocessing state/feature schema for `preprocessing_id`; an arbitrary name is not evidence of correct preprocessing. Likewise, the reference identifier records the caller's attestation, not proof of training history. Underscored internals are not a security boundary and must not be mutated.
+
+Typical order: fit Vigil on declared reference data, take the snapshot, call `score_pool(protocol.validation, scorer)`, freeze thresholds with `model_id=scorer.model_id`, then score the test pool and evaluate using the same identity. The scorer alone does not block premature test access; the study workflow must enforce that ordering. The integration test uses a tiny trained synthetic fixture, not NSL-KDD/CICIDS2017 test data or publication evidence.
 
 ## Verification and scoped review
 
