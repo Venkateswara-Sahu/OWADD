@@ -1,0 +1,13 @@
+# Development prevalence and low-FPR sensitivity
+
+Declared before calculating this sensitivity analysis. Inputs are the retained 30 runs from the NSL-KDD development pilot, not new model fits or official test data.
+
+1. Verify each completed result's checksum, each frozen calibration manifest's integrity, and both raw score sidecars. Require the complete 10-seed x 3-method grid, one original provenance/protocol identity, and identical binary development labels.
+2. Evaluate the original frozen thresholds at novel prevalences 1%, 5%, 10%, 25%, and 50%, using 8,000 distinct rows per scenario and the existing `prevalence_indices` sampler with seed 42. Every method/model seed receives identical row indices. Scenarios overlap with one another; they are not independent replicates. Class composition within the novel subset is sampled, not class-balanced.
+3. Separately examine an exploratory calibration-only threshold targeting at most 1% known-sample FPR. For n known calibration scores, allow floor(0.01*n) false positives. Choose the next representable float above the known score at sorted index n-floor(0.01*n)-1. The >= decision rule and conservative treatment of ties must keep empirical calibration FPR at or below target. Do not choose this threshold using development labels or results.
+4. Apply both operating points to the complete development reporting pool and all prevalence scenarios. Keep original freezes unchanged. The new operating point is exploratory because the low-FPR investigation follows inspection of the first development results; it is not a fresh confirmatory test.
+5. Retain every seed. Report mean metrics and deterministic 95% seed-bootstrap intervals (2,000 resamples, seed 0), conditional on the fixed split/subsets. Undefined precision from zero positive predictions remains undefined rather than zero. Report known-sample false-positive counts as well as precision/recall/F1.
+
+The 1% calibration target is an empirical operating-point constraint, not a guarantee of 1% FPR on another population. This analysis changes class prevalence by sampling; it does not simulate deployment traffic, new attack families, chronology or covariate shift. It does not establish feature-attribution quality or arXiv readiness.
+
+Reproduce with `python -m experiments.novelty_sensitivity --source artifacts/raw_results/novelty-development-v1 --output artifacts/raw_results/novelty-sensitivity-v1`. The output retains every per-seed/scenario metric and threshold, sampled-index hashes, all input-file checksums and source provenance. Missing or duplicate seed/method runs, duplicate/invalid prevalence settings, mixed source configurations and corrupted evidence are rejected. Undefined summary metrics include their defined-observation count.
