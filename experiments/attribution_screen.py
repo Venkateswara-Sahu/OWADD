@@ -15,6 +15,7 @@ from experiments.attribution.statistical import (
     StandardizedMeanDifferenceAttributor,
     WassersteinAttributor,
 )
+from experiments.attribution.two_sided import two_sided_scores
 from experiments.config import ExperimentConfig
 from experiments.io import ResultEnvelope, load_completed_result, write_result_atomic
 from experiments.metrics.attribution import evaluate_ranking
@@ -27,6 +28,8 @@ N_FEATURES = 20
 MIN_SEEDS = 2
 PROTOCOL_EPOCHS = 20
 PROTOCOL_SEEDS = tuple(range(10))
+ABLATION_SEEDS = tuple(range(10, 30))
+CANDIDATES = ("vigil_absolute_delta", "vigil_standardized_absolute_delta")
 
 
 def make_cases(seed):
@@ -53,7 +56,7 @@ def make_cases(seed):
     return train, reference, cases, order
 
 
-def _run_seed(seed, epochs):
+def _run_seed(seed, epochs, *, ablation=False):
     train, reference, cases, order = make_cases(seed)
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(seed)
@@ -82,6 +85,10 @@ def _run_seed(seed, epochs):
             "vigil_positive_delta": public.feature_contributions,
             "random": random_scores,
         }
+        details = {}
+        if ablation:
+            variants, details = two_sided_scores(model, reference, current)
+            scores.update(variants)
         for method in baselines:
             ranked = method.rank(reference, current, ("numerical",) * N_FEATURES)
             scores[ranked.method] = ranked.scores
@@ -96,6 +103,7 @@ def _run_seed(seed, epochs):
                     "scores": values.tolist(),
                     "current_sha256": sha256(current.tobytes()).hexdigest(),
                     "metrics": evaluate_ranking(values[order], permuted_truth),
+                    **(details if method in CANDIDATES else {}),
                 }
             )
     return records, {
@@ -108,7 +116,9 @@ def _run_seed(seed, epochs):
     }
 
 
-def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
+def run_screen(output, *, seeds=None, epochs=PROTOCOL_EPOCHS, ablation=False):
+    declared_seeds = ABLATION_SEEDS if ablation else PROTOCOL_SEEDS
+    seeds = declared_seeds if seeds is None else seeds
     if (
         len(seeds) < MIN_SEEDS
         or len(set(seeds)) != len(seeds)
@@ -118,7 +128,8 @@ def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
     ):
         raise ValueError("distinct nonnegative seeds and positive epochs required")
     output = Path(output)
-    protocol_complete = set(seeds) == set(PROTOCOL_SEEDS) and epochs == PROTOCOL_EPOCHS
+    protocol_complete = set(seeds) == set(declared_seeds) and epochs == PROTOCOL_EPOCHS
+    protocol_version = 2 if ablation else 1
     provenance = capture_provenance([])
     groups = defaultdict(list)
     threads = torch.get_num_threads()
@@ -131,11 +142,11 @@ def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
                 method="paired_attribution",
                 seed=seed,
                 split="validation",
-                params={"epochs": epochs, "protocol_version": 1},
+                params={"epochs": epochs, "protocol_version": protocol_version},
             )
             result = load_completed_result(output, config, provenance)
             if result is None:
-                records, metadata = _run_seed(seed, epochs)
+                records, metadata = _run_seed(seed, epochs, ablation=ablation)
                 result = ResultEnvelope(
                     config.canonical_dict(),
                     provenance,
@@ -169,17 +180,59 @@ def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
                 },
             }
         )
+    summary_metrics = {"groups": summary}
+    if ablation:
+        paired = []
+        cases = sorted({case for case, _ in groups})
+        for case in cases:
+            baselines = sorted(
+                method for c, method in groups if c == case and method not in CANDIDATES
+            )
+            comparisons = [
+                (candidate, baseline)
+                for candidate in CANDIDATES
+                for baseline in baselines
+            ]
+            comparisons.append((CANDIDATES[1], CANDIDATES[0]))
+            for candidate, baseline in comparisons:
+                left, right = groups[case, candidate], groups[case, baseline]
+                paired.append(
+                    {
+                        "case": case,
+                        "candidate": candidate,
+                        "baseline": baseline,
+                        "n_seeds": len(seeds),
+                        "metrics": {
+                            key: summarize(
+                                [
+                                    (
+                                        None
+                                        if a[key] is None and b[key] is None
+                                        else a[key] - b[key]
+                                    )
+                                    for a, b in zip(left, right, strict=True)
+                                ]
+                            )
+                            for key in left[0]
+                        },
+                    }
+                )
+        summary_metrics["paired_differences"] = paired
     config = ExperimentConfig(
         dataset="independent_gaussian_windows",
         method="attribution_summary",
         seed=0,
         split="validation",
-        params={"epochs": epochs, "seeds": list(seeds), "protocol_version": 1},
+        params={
+            "epochs": epochs,
+            "seeds": list(seeds),
+            "protocol_version": protocol_version,
+        },
     )
     root = output / "summary"
     completed = load_completed_result(root, config, provenance)
     if completed is not None:
-        if completed.metrics != {"groups": summary}:
+        if completed.metrics != summary_metrics:
             raise ValueError("summary mismatch")
         return root / config.config_hash / provenance.identity_hash / "result.json"
     return write_result_atomic(
@@ -187,7 +240,7 @@ def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
         ResultEnvelope(
             config.canonical_dict(),
             provenance,
-            {"groups": summary},
+            summary_metrics,
             metadata={
                 "stage": "numerical_window_development_screen",
                 "not_full_study": True,
@@ -200,5 +253,6 @@ def run_screen(output, *, seeds=PROTOCOL_SEEDS, epochs=PROTOCOL_EPOCHS):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ablation", action="store_true")
     args = parser.parse_args()
-    print(run_screen(args.output), flush=True)
+    print(run_screen(args.output, ablation=args.ablation), flush=True)
