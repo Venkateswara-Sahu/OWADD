@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vigil — Real-Time Network Drift Detection</title>
-  <meta name="description" content="Vigil detects concept drift and novel attack classes in network traffic streams. No labels. No thresholds. Feature-level attribution."/>
+  <meta name="description" content="Vigil is a drift-monitoring prototype with reconstruction-error rankings, example integrations and reproducible baseline evaluation."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
@@ -346,9 +346,8 @@ footer a:hover{color:var(--text)}
     </h1>
 
     <p class="hero-sub" id="h-sub">
-      <strong>No labels. No thresholds.</strong> Unsupervised concept drift detection
-      for network traffic streams — with feature-level attribution that tells you
-      exactly which signals changed.
+      <strong>Label-free monitoring. Explicit limitations.</strong> A drift-monitoring
+      prototype with feature-error rankings and reproducible baseline evaluation.
     </p>
 
     <div class="hero-btns" id="h-btns">
@@ -371,7 +370,7 @@ footer a:hover{color:var(--text)}
         <div class="term-dots">
           <span class="td1"></span><span class="td2"></span><span class="td3"></span>
         </div>
-        <span class="term-title">kafka_pipeline/consumer.py — live output</span>
+        <span class="term-title">Illustrative demo output — not a live feed</span>
       </div>
       <div class="term-body" id="term-out"></div>
     </div>
@@ -382,42 +381,50 @@ footer a:hover{color:var(--text)}
 <section id="features">
 <div class="c">
   <div class="s-tag">Capabilities</div>
-  <h2 class="s-title reveal">Drift detection that<br/>actually explains itself.</h2>
-  <p class="s-sub reveal">Most detectors tell you <em>that</em> something changed. Vigil tells you <em>what</em> changed and ranks it.</p>
+  <h2 class="s-title reveal">Drift detection<br/>with inspectable feature scores.</h2>
+  <p class="s-sub reveal">Vigil ranks reconstruction-error changes. These scores are not causal explanations or validated attack labels.</p>
 
   <div class="feat-grid">
     <div class="feat-card reveal">
       <div class="feat-num">01</div>
       <div class="feat-icon">🔬</div>
       <div class="feat-title">Unsupervised Detection</div>
-      <div class="feat-desc">Replicated T-Test (r=15) on autoencoder reconstruction errors. Zero ground-truth labels needed. Works in real streams from day one.</div>
+      <div class="feat-desc">Replicated T-Test (r=15) on autoencoder reconstruction errors. Zero ground-truth labels needed. Requires calibration and evaluation before operational use.</div>
       <span class="feat-tag">NO LABELS REQUIRED</span>
     </div>
     <div class="feat-card reveal">
       <div class="feat-num">02</div>
       <div class="feat-icon">🆕</div>
       <div class="feat-title">Novel Class Recognition</div>
-      <div class="feat-desc">A frozen mirror autoencoder (A_KC) separates unknown attack classes from distribution shift — knows the difference between "changed" and "new".</div>
+      <div class="feat-desc">A frozen mirror autoencoder (A_KC) supports KDE novelty scoring. Scores do not establish the identity of unknown attack classes.</div>
       <span class="feat-tag">DUAL AUTOENCODER</span>
     </div>
     <div class="feat-card reveal">
       <div class="feat-num">03</div>
       <div class="feat-icon">📊</div>
       <div class="feat-title">Feature Attribution</div>
-      <div class="feat-desc">DriftAttributor ranks input features by reconstruction error delta. Turns a drift alert into: "service_eco_i shifted 15.3%, dst_host changed 12.3%".</div>
-      <span class="feat-tag">NOVEL CONTRIBUTION</span>
+      <div class="feat-desc">DriftAttributor ranks input features by reconstruction-error delta. Normalized contributions are scores, not percentages of input change.</div>
+      <span class="feat-tag">EXPERIMENTAL RANKING</span>
     </div>
     <div class="feat-card reveal">
       <div class="feat-num">04</div>
       <div class="feat-icon">🏭</div>
-      <div class="feat-title">Production Pipeline</div>
+      <div class="feat-title">Integration Examples</div>
       <div class="feat-desc">FastAPI REST. Kafka stream. Airflow retraining DAGs with quality gates. MLflow tracking. Docker compose. Five services, one command.</div>
-      <span class="feat-tag">MLOPS READY</span>
+      <span class="feat-tag">RESEARCH PROTOTYPE</span>
     </div>
   </div>
 </div>
 </section>
 
+<section id="research-status"><div class="c">
+  <h2>Research status</h2>
+  <p>Controlled evaluation did not establish a generally superior new attribution method.
+  Some trained rankings improved on controls, but simple statistical baselines remained
+  stronger in several conditions. The original default is unchanged.</p>
+  <p><a href="https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md">Read the evidence and limitations</a>.
+  The old manuscript is unpublished and superseded; no Vigil publication is claimed.</p>
+</div></section>
 <!-- STATS -->
 <section id="stats">
 <div class="c">
@@ -428,19 +435,19 @@ footer a:hover{color:var(--text)}
           <circle class="ring-track" cx="50" cy="50" r="45"/>
           <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--blue)" data-pct="100"/>
         </svg>
-        <div class="stat-val" data-target="14">0</div>
+        <div class="stat-val" data-target="20">0</div>
       </div>
-      <div class="stat-label">Tests Passing</div>
+      <div class="stat-label">Final Study Seeds</div>
     </div>
     <div class="stat-ring-wrap reveal">
       <div class="stat-ring">
         <svg width="100" height="100" viewBox="0 0 100 100">
           <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--green)" data-pct="81"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--green)" data-pct="100"/>
         </svg>
-        <div class="stat-val" data-target="81">0</div>
+        <div class="stat-val" data-target="9">0</div>
       </div>
-      <div class="stat-label">% Coverage</div>
+      <div class="stat-label">Compared Rankings</div>
     </div>
     <div class="stat-ring-wrap reveal">
       <div class="stat-ring">
@@ -480,8 +487,8 @@ footer a:hover{color:var(--text)}
 <section id="pipeline">
 <div class="c">
   <div class="s-tag">Architecture</div>
-  <h2 class="s-title reveal">End-to-end.<br/>Fully automated.</h2>
-  <p class="s-sub reveal">From raw network packets to automatic model retraining — Vigil orchestrates the entire pipeline.</p>
+  <h2 class="s-title reveal">Monitoring components.<br/>Example integrations.</h2>
+  <p class="s-sub reveal">Prepared feature chunks connect the monitoring, tracking and retraining examples. This is not a validated raw-packet or autonomous production pipeline.</p>
 
   <div class="pipe-grid">
     <div class="pipe-node reveal">
@@ -561,9 +568,9 @@ v.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offl
             <span class="cf">print</span>(<span class="cs">f"   {f['feature_name']}: {f['contribution']:.1%}"</span>)
 
 <span class="cm"># ⚠  severity=1.00</span>
-<span class="cm"># → service_eco_i              15.3%   (port scan signature)</span>
-<span class="cm"># → dst_host_same_src_port_rate 12.3%   (scanning pattern)</span>
-<span class="cm"># → srv_diff_host_rate          11.1%   (lateral movement)</span></pre>
+<span class="cm"># → service_eco_i              15.3%   (illustrative score)</span>
+<span class="cm"># → dst_host_same_src_port_rate 12.3%   (illustrative score)</span>
+<span class="cm"># → srv_diff_host_rate          11.1%   (illustrative score)</span></pre>
   </div>
 </div>
 </section>
@@ -595,18 +602,18 @@ v.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offl
   <p class="s-sub reveal">Everything is on GitHub. The algorithm, the API, the Airflow DAGs, the Kafka pipeline, the dashboard. All of it.</p>
   <div class="hero-btns" style="justify-content:center;margin-top:40px">
     <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">★ &nbsp;Star on GitHub</a>
-    <a class="btn-docs" href="https://github.com/Venkateswara-Sahu/OWADD#-quick-start" target="_blank">Read Docs →</a>
+    <a class="btn-docs" href="https://github.com/Venkateswara-Sahu/OWADD#quick-start" target="_blank">Read Docs →</a>
   </div>
 </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div>🛡️ VIGIL · MIT · <a href="https://arxiv.org/abs/2605.29834" target="_blank">arXiv:2605.29834</a></div>
+  <div>🛡️ VIGIL · MIT · <a href="https://arxiv.org/abs/2605.29834" target="_blank">Referenced base work: arXiv:2605.29834</a></div>
   <div class="footer-links">
     <a href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">GitHub</a>
-    <a href="https://arxiv.org/abs/2605.29834" target="_blank">Paper</a>
-    <a href="https://github.com/Venkateswara-Sahu/OWADD#-rest-api" target="_blank">API</a>
+    <a href="https://arxiv.org/abs/2605.29834" target="_blank">Referenced base work</a>
+    <a href="https://github.com/Venkateswara-Sahu/OWADD#example-integrations" target="_blank">API</a>
   </div>
 </footer>
 

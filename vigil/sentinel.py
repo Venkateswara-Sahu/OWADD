@@ -5,7 +5,7 @@ The top-level class that ties together all components:
   - Dual mirrored autoencoders (A and A_KC)
   - Replicated T-Test drift detector
   - KDE-based novelty detector
-  - Feature attribution (original contribution)
+  - Feature reconstruction-error attribution (experimental ranking)
 
 This is the only class users need to import for basic usage:
 

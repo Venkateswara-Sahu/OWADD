@@ -1,12 +1,12 @@
 ﻿"""
-Feature Attribution Module (Original Contribution)
+Feature Reconstruction-Error Attribution
 ===================================================
 This module extends arXiv:2605.29834 with feature-level drift attribution.
 
 The original OWADD paper only answers: "Did drift happen?" (yes/no).
 This module answers: "WHICH features show increased reconstruction error?"
 
-Approach: Gradient-based feature attribution on the autoencoder.
+Approach: Differences in mean per-feature squared reconstruction error.
   For each feature, we compute how much it contributed to the increase in
   reconstruction error between the reference distribution and the current batch.
 
@@ -16,8 +16,9 @@ Approach: Gradient-based feature attribution on the autoencoder.
     3. Normalize contributions to get a proportion (sums to 1.0).
     4. Rank features by their drift contribution.
 
-This is the key NOVEL CONTRIBUTION of Vigil over the base paper.
-It makes drift detection ACTIONABLE — engineers know exactly where to look.
+These scores are heuristic rankings, not causal explanations or attack labels.
+Evaluation did not establish consistent superiority over simple baselines;
+see docs/research-status.md.
 """
 
 from dataclasses import dataclass, field
@@ -57,9 +58,9 @@ class DriftAttributor:
     """
     Computes feature-level attribution for detected concept drift.
 
-    This is the original contribution of Vigil beyond arXiv:2605.29834.
-        It identifies features associated with increased reconstruction error,
-    making drift alerts actionable for data engineers and ML teams.
+    Identifies features associated with reconstruction-error changes.
+    The default positive-only rule is retained for compatibility; alternatives
+    are experimental and do not establish method novelty or superiority.
 
     Parameters
     ----------
