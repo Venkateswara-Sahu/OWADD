@@ -12,7 +12,7 @@
 
 # 🛡️ Vigil
 
-### Production-ready unsupervised concept drift detection for network traffic streams
+### Unsupervised concept-drift detection and feature attribution for network traffic streams
 
 **No labels. No manual thresholds. Knows when your data changes — and tells you exactly which features changed.**
 
@@ -114,7 +114,7 @@ Evaluated on the **NSL-KDD** network intrusion detection dataset (Canadian Insti
 | Avg novelty proportion flagged | 30% |
 | False alarm rate | 1 / 5 stable chunks |
 
-> **Key insight:** 93.3% precision means a SOC analyst sees almost no false alarms. The 1-chunk delay means attacks are caught within the first 200 packets — before most lateral movement completes.
+> **Interpretation:** In this simulated stream, 93.3% precision meant most drift alerts were correct. A one-chunk detection delay corresponds to 200 samples under this experiment's chunk configuration; it does not establish real-world response time.
 
 **Per-attack-class detection rate:**
 
@@ -210,7 +210,7 @@ Open **http://localhost:8501**, press **▶ Start** and watch:
 
 ## 🌐 REST API
 
-FastAPI microservice for production deployment:
+FastAPI service for integration testing and deployment experiments:
 
 ```bash
 pip install "vigil-drift[api]"
@@ -277,7 +277,7 @@ python kafka_pipeline/consumer.py
 
 ## ✈️ Airflow MLOps
 
-Two production DAGs automate the MLOps lifecycle:
+Two Airflow DAGs demonstrate an automated ML lifecycle:
 
 | DAG | Schedule | What it does |
 |---|---|---|
@@ -396,7 +396,7 @@ This project implements and extends:
 
 **Extensions in Vigil (not in the paper):**
 - `DriftAttributor`: per-feature reconstruction error delta analysis — makes drift detection *actionable*
-- FastAPI REST service for production deployment
+- FastAPI REST service for integration and deployment experiments
 - MLflow integration for experiment tracking and model versioning
 - Kafka streaming pipeline for real network traffic simulation
 - Airflow DAGs for automated MLOps lifecycle management
