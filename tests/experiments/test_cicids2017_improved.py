@@ -71,6 +71,21 @@ def archive_fixture(
     return archive
 
 
+def test_preparation_supports_copy_on_write(tmp_path):
+    from experiments.datasets.cicids2017_improved import prepare_archive
+
+    source = archive_fixture(tmp_path, nonfinite=True)
+    output = tmp_path / "prepared"
+    with pd.option_context("mode.copy_on_write", True):
+        report = prepare_archive(source, output, read_chunk_rows=2)
+
+    np.testing.assert_allclose(np.load(output / "monday.X.npy")[:, 0], [0, 1])
+    np.testing.assert_allclose(np.load(output / "tuesday.X.npy")[:, 0], [2, 3])
+    assert report["days"]["monday"]["nonfinite_removed"] == 1
+    assert report["days"]["tuesday"]["duplicates_removed"] == 1
+    assert report["complete"] is True
+
+
 def test_preparation_is_sorted_train_only_and_disjoint(tmp_path):
     from experiments.datasets.cicids2017_improved import prepare_archive
 

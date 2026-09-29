@@ -147,7 +147,8 @@ def prepare_archive(archive: Path, output: Path, *, read_chunk_rows=25000):
                         values = (
                             chunk[features]
                             .apply(pd.to_numeric, errors="coerce")
-                            .to_numpy(dtype="<f8")
+                            # Own writable storage for signed-zero normalization.
+                            .to_numpy(dtype="<f8", copy=True)
                         )
                         finite = np.isfinite(values).all(axis=1)
                         counts["nonfinite_removed"] += int((~finite).sum())
