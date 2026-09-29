@@ -1,808 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vigil — Real-Time Network Drift Detection</title>
-  <meta name="description" content="Vigil is a drift-monitoring prototype with reconstruction-error rankings, example integrations and reproducible baseline evaluation."/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101716">
+<meta name="description" content="Vigil: an open-source drift-monitoring prototype, feature-error diagnostics and reproducible attribution evaluation. Explore the system, evidence and limitations.">
+<title>Vigil — Observe the shift.</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#060a0f;
-  --surface:#0d1117;
-  --surface2:#161b22;
-  --border:#1e2530;
-  --text:#e6edf3;
-  --muted:#6e7681;
-  --blue:#58a6ff;
-  --blue-dim:#1a3a5c;
-  --green:#39d353;
-  --red:#f85149;
-  --red-dim:#3d1a18;
-  --amber:#e3b341;
-  --mono:'JetBrains Mono',monospace;
-  --sans:'Inter',sans-serif;
-}
-html{scroll-behavior:auto}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:#1e2530;border-radius:2px}
-
-/* NAV */
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 48px;height:60px;
-  background:rgba(6,10,15,0.7);
-  backdrop-filter:blur(20px);
-  border-bottom:1px solid rgba(30,37,48,0.5);
-  transition:border-color .3s;
-}
-.nav-logo{font-family:var(--mono);font-size:.9rem;font-weight:700;color:var(--text);text-decoration:none;letter-spacing:.12em;display:flex;align-items:center;gap:10px}
-.nav-logo-dot{width:8px;height:8px;background:var(--red);border-radius:50%;animation:pulse-red 2s ease-in-out infinite}
-@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.6)}50%{box-shadow:0 0 0 6px rgba(248,81,73,0)}}
-.nav-links{display:flex;gap:32px;list-style:none}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;letter-spacing:.04em;transition:color .2s}
-.nav-links a:hover{color:var(--text)}
-.nav-cta{font-family:var(--mono);background:transparent;color:var(--blue);border:1px solid var(--blue);font-size:.8rem;font-weight:700;padding:7px 18px;border-radius:4px;text-decoration:none;transition:background .2s,color .2s;letter-spacing:.06em}
-.nav-cta:hover{background:var(--blue);color:#060a0f}
-
-/* HERO */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;position:relative;overflow:hidden}
-#net-canvas{position:absolute;inset:0;z-index:0;opacity:.6}
-
-/* Attack ticker */
-.ticker-wrap{
-  position:absolute;top:60px;left:0;right:0;overflow:hidden;
-  background:rgba(248,81,73,.06);border-top:1px solid rgba(248,81,73,.15);border-bottom:1px solid rgba(248,81,73,.15);
-  height:32px;display:flex;align-items:center;z-index:10;
-}
-.ticker{display:flex;animation:ticker-scroll 40s linear infinite;white-space:nowrap}
-.ticker-item{font-family:var(--mono);font-size:.7rem;color:var(--red);padding:0 32px;opacity:.85}
-.ticker-item span{color:var(--amber)}
-@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-
-.hero-content{position:relative;z-index:5}
-
-/* Glitch title */
-.glitch-wrap{margin-bottom:8px}
-.glitch{
-  font-family:var(--mono);font-size:clamp(1rem,2vw,1.3rem);font-weight:700;
-  color:var(--muted);letter-spacing:.4em;text-transform:uppercase;
-  position:relative;display:inline-block;
-}
-.glitch::before,.glitch::after{
-  content:attr(data-text);position:absolute;top:0;left:0;
-  color:var(--muted);
-}
-.glitch::before{left:2px;text-shadow:-2px 0 var(--red);animation:glitch-1 3s infinite linear}
-.glitch::after{left:-2px;text-shadow:2px 0 var(--blue);animation:glitch-2 3s infinite linear}
-@keyframes glitch-1{
-  0%,5%,10%,15%,100%{clip-path:none;transform:none}
-  6%{clip-path:polygon(0 20%,100% 20%,100% 25%,0 25%);transform:translate(-2px)}
-  7%{clip-path:polygon(0 60%,100% 60%,100% 65%,0 65%);transform:translate(2px)}
-  8%{clip-path:none;transform:none}
-  11%{clip-path:polygon(0 40%,100% 40%,100% 45%,0 45%);transform:translate(-2px)}
-  12%{clip-path:none;transform:none}
-}
-@keyframes glitch-2{
-  0%,5%,10%,15%,100%{clip-path:none;transform:none}
-  6%{clip-path:polygon(0 70%,100% 70%,100% 75%,0 75%);transform:translate(2px)}
-  7%{clip-path:polygon(0 30%,100% 30%,100% 35%,0 35%);transform:translate(-2px)}
-  8%{clip-path:none;transform:none}
-}
-
-.hero-h1{
-  font-size:clamp(3rem,8vw,6.5rem);font-weight:900;line-height:1.0;
-  letter-spacing:-.04em;margin:20px 0 28px;
-  background:linear-gradient(180deg,#e6edf3 0%,rgba(230,237,243,.6) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-h1 .accent{
-  background:linear-gradient(90deg,var(--red),var(--amber));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-sub{
-  font-size:clamp(.95rem,2.2vw,1.15rem);color:var(--muted);
-  max-width:540px;margin:0 auto 44px;line-height:1.75;font-weight:300;
-}
-.hero-sub strong{color:var(--text);font-weight:600}
-.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.btn-gh{
-  background:var(--text);color:#060a0f;font-weight:800;font-size:.88rem;
-  padding:12px 26px;border-radius:6px;text-decoration:none;
-  display:flex;align-items:center;gap:8px;transition:opacity .2s,transform .2s;
-  font-family:var(--sans);
-}
-.btn-gh:hover{opacity:.88;transform:translateY(-2px)}
-.btn-docs{
-  background:transparent;color:var(--muted);border:1px solid var(--border);
-  font-weight:600;font-size:.88rem;padding:12px 26px;border-radius:6px;
-  text-decoration:none;display:flex;align-items:center;gap:8px;
-  transition:border-color .2s,color .2s,transform .2s;
-}
-.btn-docs:hover{border-color:var(--muted);color:var(--text);transform:translateY(-2px)}
-
-/* Terminal */
-.hero-term{
-  margin-top:56px;background:#010409;border:1px solid var(--border);
-  border-radius:10px;max-width:700px;width:100%;text-align:left;
-  font-family:var(--mono);font-size:.78rem;overflow:hidden;
-  box-shadow:0 0 60px rgba(248,81,73,.08),0 32px 80px rgba(0,0,0,.5);
-}
-.term-bar{
-  background:var(--surface2);border-bottom:1px solid var(--border);
-  padding:10px 16px;display:flex;align-items:center;gap:10px;
-}
-.term-dots span{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px}
-.td1{background:#f85149}.td2{background:#e3b341}.td3{background:#39d353}
-.term-title{font-size:.7rem;color:var(--muted);margin-left:8px}
-.term-body{padding:20px;max-height:260px;overflow:hidden}
-.tl{margin:2px 0;line-height:1.6}
-.tp{color:var(--green)}.tc{color:var(--text)}.to{color:var(--muted)}
-.td{color:var(--red);font-weight:700}.ts{color:var(--green)}
-.tf{color:var(--amber)}.tcu{display:inline-block;width:7px;height:13px;background:var(--blue);animation:blink 1s step-end infinite;vertical-align:middle}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-
-/* SECTION BASE */
-section{padding:110px 24px}
-.c{max-width:1100px;margin:0 auto}
-.s-tag{font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.s-tag::before{content:'';width:20px;height:1px;background:var(--red)}
-.s-title{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:18px}
-.s-sub{color:var(--muted);font-size:1rem;line-height:1.8;max-width:520px;font-weight:300}
-
-/* FEATURES */
-#features{border-top:1px solid var(--border)}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;margin-top:64px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.feat-card{
-  background:var(--surface);padding:36px 28px;position:relative;overflow:hidden;
-  transition:background .3s;
-}
-.feat-card::before{
-  content:'';position:absolute;inset:0;opacity:0;
-  background:radial-gradient(circle at top left,rgba(248,81,73,.08),transparent 60%);
-  transition:opacity .4s;
-}
-.feat-card:hover{background:var(--surface2)}
-.feat-card:hover::before{opacity:1}
-.feat-num{font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.15em;margin-bottom:20px}
-.feat-icon{font-size:1.6rem;margin-bottom:14px}
-.feat-title{font-size:1.05rem;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
-.feat-desc{color:var(--muted);font-size:.85rem;line-height:1.7;font-weight:300}
-.feat-tag{
-  display:inline-block;margin-top:14px;font-family:var(--mono);font-size:.65rem;
-  color:var(--red);border:1px solid rgba(248,81,73,.3);padding:3px 8px;border-radius:3px;
-}
-
-/* STATS — SOC rings */
-#stats{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 24px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:48px;text-align:center}
-.stat-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
-.stat-ring{position:relative;width:100px;height:100px}
-.stat-ring svg{transform:rotate(-90deg)}
-.ring-track{fill:none;stroke:var(--border);stroke-width:4}
-.ring-fill{fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.4s cubic-bezier(.25,.46,.45,.94)}
-.stat-val{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--blue);
-}
-.stat-label{font-size:.72rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-
-/* PIPELINE */
-#pipeline{border-top:1px solid var(--border)}
-.pipe-grid{
-  display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr auto 1fr;
-  align-items:center;gap:0;margin-top:64px;
-}
-.pipe-node{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:24px 16px;text-align:center;
-  position:relative;overflow:hidden;
-}
-.pipe-node.active{border-color:rgba(248,81,73,.5)}
-.pipe-node.active::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--red),transparent);
-  animation:scan-line 2s ease-in-out infinite;
-}
-@keyframes scan-line{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-.pipe-icon{font-size:1.5rem;margin-bottom:8px}
-.pipe-label{font-size:.78rem;font-weight:700;color:var(--text);letter-spacing:.02em}
-.pipe-sub{font-size:.65rem;color:var(--muted);margin-top:4px}
-.pipe-arrow-wrap{display:flex;align-items:center;justify-content:center;padding:0 8px}
-.pipe-arrow-wrap svg{opacity:.3}
-
-/* Beam animation */
-.beam{
-  height:2px;background:linear-gradient(90deg,transparent,var(--blue),transparent);
-  width:100%;animation:beam-travel 3s ease-in-out infinite;
-}
-@keyframes beam-travel{0%,100%{opacity:0;transform:scaleX(0)}50%{opacity:1;transform:scaleX(1)}}
-
-/* NOVELTY section */
-#novelty{border-top:1px solid var(--border);background:var(--surface)}
-.novelty-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-top:56px}
-.novelty-visual{position:relative}
-.autoenc-diagram{font-family:var(--mono);font-size:.75rem;color:var(--muted);line-height:2}
-.ae-box{
-  display:inline-block;padding:8px 16px;border-radius:6px;font-size:.72rem;font-weight:700;
-  border:1px solid;margin:4px;
-}
-.ae-a{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.06)}
-.ae-akc{border-color:var(--amber);color:var(--amber);background:rgba(227,179,65,.06)}
-.ae-arrow{color:var(--border);margin:0 8px}
-.ae-label{font-size:.65rem;color:var(--muted);margin-top:4px}
-
-/* CODE */
-#usage{border-top:1px solid var(--border)}
-.code-wrap{
-  background:#010409;border:1px solid var(--border);
-  border-radius:10px;overflow:hidden;margin-top:52px;
-  box-shadow:0 24px 80px rgba(0,0,0,.4);
-}
-.code-bar{
-  background:var(--surface2);border-bottom:1px solid var(--border);
-  padding:12px 20px;display:flex;align-items:center;justify-content:space-between;
-}
-.code-file{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
-.code-lang{font-family:var(--mono);font-size:.68rem;color:var(--blue)}
-pre{padding:28px;font-family:var(--mono);font-size:.8rem;line-height:1.8;overflow-x:auto;color:var(--text)}
-.ck{color:#ff7b72}.cf{color:#d2a8ff}.cs{color:#a5d6ff}.cn{color:#79c0ff}
-.cm{color:var(--muted);font-style:italic}.cc{color:#ffa657}
-
-/* STACK */
-#stack{border-top:1px solid var(--border)}
-.stack-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:48px}
-.stk{
-  font-family:var(--mono);font-size:.75rem;color:var(--muted);
-  border:1px solid var(--border);border-radius:4px;padding:8px 14px;
-  transition:border-color .2s,color .2s,transform .2s;cursor:default;
-}
-.stk:hover{border-color:var(--blue);color:var(--text);transform:translateY(-2px)}
-
-/* CTA */
-#cta{
-  border-top:1px solid var(--border);text-align:center;
-  background:radial-gradient(ellipse 70% 50% at 50% 100%,rgba(248,81,73,.05),transparent);
-}
-#cta .s-title{max-width:600px;margin:0 auto 16px}
-#cta .s-sub{margin:0 auto 44px}
-
-/* FOOTER */
-footer{
-  border-top:1px solid var(--border);
-  padding:28px 48px;display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--mono);font-size:.68rem;color:var(--muted);flex-wrap:wrap;gap:12px;
-}
-footer a{color:var(--muted);text-decoration:none;transition:color .2s}
-footer a:hover{color:var(--text)}
-.footer-links{display:flex;gap:20px}
-
-/* Scroll reveal */
-.reveal{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease}
-.reveal.in{opacity:1;transform:none}
-
-@media(max-width:768px){
-  nav{padding:0 20px}.nav-links{display:none}
-  .pipe-grid{grid-template-columns:1fr;gap:12px}
-  .pipe-arrow-wrap{transform:rotate(90deg)}
-  .novelty-grid{grid-template-columns:1fr}
-  footer{flex-direction:column;text-align:center}
-}
+:root{color-scheme:dark;--bg:#101716;--panel:#17211f;--ink:#f1f0e9;--muted:#a9bbb5;--line:#354640;--accent:#a1e6cf;--dark:#12241d;--mono:Consolas,"Liberation Mono",monospace;--sans:Inter,"Segoe UI",Arial,sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-underline-offset:5px}
+a:hover{color:var(--accent)}
+a:focus-visible,summary:focus-visible,pre:focus-visible{outline:3px solid var(--accent);outline-offset:6px}
+::selection{background:var(--accent);color:var(--dark)}
+.wrap{max-width:1200px;margin-inline:auto;padding-inline:44px}
+.skip{position:fixed;top:12px;left:12px;z-index:5;background:var(--accent);color:var(--dark);padding:12px 20px;transform:translateY(-160%)}
+.skip:focus{transform:none;color:var(--dark)}
+header{border-bottom:1px solid var(--line);background:var(--bg)}
+.nav{min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:inline-flex;align-items:center;gap:11px;font-weight:750;letter-spacing:-1px;font-size:25px;text-decoration:none}
+.brand svg{width:27px;height:31px;color:var(--accent)}
+.navlinks{display:flex;align-items:center;gap:28px;font-size:13px}
+.navlinks a{text-decoration:none}
+.navlinks .repo{border:1px solid var(--line);padding:9px 15px;border-radius:5px}
+.eyebrow{font:11px var(--mono);letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px;margin:0 0 26px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.hero{padding-block:92px 72px;display:grid;grid-template-columns:1.08fr 1fr;gap:64px;align-items:center}
+h1{font-size:clamp(50px,6.7vw,84px);line-height:1.02;letter-spacing:-4px;font-weight:550;margin:0 0 27px}
+h1 span{color:var(--accent)}
+.lead{max-width:460px;color:var(--muted);font-size:17px;line-height:1.75}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:12px 19px;font-size:13px;font-weight:650;border:1px solid var(--line);border-radius:5px;text-decoration:none;transition:background .15s,color .15s}
+.button.primary{background:var(--accent);border-color:var(--accent);color:var(--dark)}
+.button:hover{background:#233c33;color:var(--ink)}
+.install{font:12px var(--mono);margin-top:24px;color:var(--muted)}
+.install span{color:var(--accent);margin-right:12px}
+.monitor{border:1px solid #465e54;background:linear-gradient(145deg,#1c2b25,#15201d);border-radius:12px;overflow:hidden;box-shadow:0 22px 70px #0003}
+.monitor-top{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:17px 22px;font:10px var(--mono);letter-spacing:1px;color:var(--muted)}
+.monitor-top span:last-child{color:var(--accent)}
+.monitor-body{padding:25px 25px 14px}
+.monitor-label{font:10px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.monitor-title{font-size:23px;letter-spacing:-.7px;margin:6px 0 13px}
+.chart{width:100%;height:auto;display:block}
+.chart-labels{display:flex;justify-content:space-between;color:var(--muted);font:10px var(--mono);padding-top:2px}
+.feature-scores{margin-top:23px;padding-top:18px;border-top:1px solid var(--line)}
+.feature-row{display:grid;grid-template-columns:95px 1fr;align-items:center;gap:15px;margin-top:10px;font:11px var(--mono);color:#c1d2cb}
+.bar{height:5px;background:#30443b;border-radius:10px}
+.bar span{display:block;height:100%;border-radius:10px;background:var(--accent)}
+.monitor-note{font-size:11px;color:var(--muted);margin:19px 0 6px}
+.hero-caption{margin:13px 4px 0;color:var(--muted);font:10px var(--mono);line-height:1.6}
+.strip{border-block:1px solid var(--line);padding-block:19px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;color:var(--muted);font:11px var(--mono)}
+.strip strong{color:var(--ink);font-weight:400}
+section.content{padding-block:82px;border-bottom:1px solid var(--line)}
+.section-head{display:grid;grid-template-columns:1.15fr 1fr;gap:48px;margin-bottom:38px;align-items:end}
+.section-head .eyebrow{margin-bottom:13px}
+h2{font-size:clamp(30px,4vw,44px);line-height:1.15;letter-spacing:-1.7px;font-weight:550;margin:0}
+.section-head p{color:var(--muted);font-size:14px;margin:0;max-width:470px}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);list-style:none;padding:0;margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.flow li{padding:24px;position:relative;background:var(--panel)}
+.flow li+li{border-left:1px solid var(--line)}
+.step{font:11px var(--mono);color:var(--accent)}
+h3{font-size:17px;font-weight:550;letter-spacing:-.3px;margin:17px 0 8px}
+.flow p{font-size:13px;color:var(--muted);margin:0}
+.integrations{display:grid;grid-template-columns:1fr 2fr;gap:40px;margin-top:32px;align-items:start}
+.integrations p{font-size:12px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font:11px var(--mono);padding:7px 12px;border:1px solid var(--line);border-radius:4px;color:#cfddd6}
+.evidence-grid{display:grid;grid-template-columns:.8fr 1.4fr;gap:24px}
+.scope{padding:27px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.scope h3{margin:0 0 22px;font-size:13px;color:var(--muted)}
+.study-counts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.study-counts div{padding-bottom:15px}
+.study-counts strong{display:block;font-size:39px;line-height:1.2;letter-spacing:-2px;font-weight:500}
+.study-counts span{font-size:11px;color:var(--muted)}
+.scope p{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px;margin:0}
+.findings{padding:27px;border:1px solid var(--line);border-radius:8px}
+.status{font:10px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+.findings h3{font-size:25px;line-height:1.3;max-width:520px;margin:15px 0}
+.findings p{font-size:14px;color:var(--muted);margin:0 0 15px}
+.findings a{font-size:13px;color:var(--accent)}
+details{border-top:1px solid var(--line);margin-top:25px;padding-top:18px}
+summary{cursor:pointer;font-size:13px;color:var(--ink);padding-block:4px}
+details ul{padding-left:19px;font-size:12px;color:var(--muted);margin-bottom:0}
+details li+li{margin-top:8px}
+.quick-grid{display:grid;grid-template-columns:.8fr 1.4fr;gap:48px}
+.quick-grid > *{min-width:0}
+.quick-grid p{color:var(--muted);font-size:14px;margin:22px 0}
+.quick-grid .eyebrow{margin-bottom:15px}
+.textlink{font-size:13px;color:var(--accent)}
+.codebox{min-width:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#0c1210}
+.codehead{font:10px var(--mono);color:var(--muted);display:flex;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--line)}
+pre{font:12px/1.9 var(--mono);margin:0;padding:23px;overflow:auto;color:#d2ded8;tab-size:4}
+pre .comment{color:#98aaa1}
+pre .keyword{color:var(--accent)}
+.quicknote{font-size:11px!important;margin:12px 0 0!important}
+footer{padding-block:34px 45px}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:25px}
+.footer-copy{color:var(--muted);font-size:11px;margin:7px 0 0}
+.footer-links{display:flex;flex-wrap:wrap;gap:24px;font-size:12px}
+@media(min-width:1500px){.hero{padding-block:115px 90px}}
+@media(max-width:900px){.wrap{padding-inline:28px}.hero{gap:30px;grid-template-columns:1fr 1fr}h1{font-size:60px;letter-spacing:-3px}.navlinks{gap:17px}.flow{grid-template-columns:1fr 1fr}.flow li:nth-child(3){border-left:0;border-top:1px solid var(--line)}.flow li:nth-child(4){border-top:1px solid var(--line)}.section-head{gap:25px}.quick-grid{gap:25px}.study-counts strong{font-size:34px}}
+@media(max-width:650px){.wrap{padding-inline:22px}.nav{min-height:90px;flex-wrap:wrap;gap:12px;padding-block:15px}.brand{font-size:23px}.navlinks{gap:18px;font-size:11px;flex-wrap:wrap}.navlinks .repo{padding:5px 9px}.hero{grid-template-columns:1fr;padding-block:48px;gap:38px}h1{font-size:62px;letter-spacing:-3px}.lead{font-size:15px}.eyebrow{font-size:10px}.monitor-body{padding:20px}.strip{gap:13px 20px;font-size:10px}section.content{padding-block:52px}.section-head,.evidence-grid,.quick-grid,.integrations{grid-template-columns:1fr;gap:23px}.section-head{margin-bottom:26px}.flow li{padding:20px}.flow p{font-size:12px}.flow h3{font-size:15px}.scope,.findings{padding:23px}.study-counts{grid-template-columns:repeat(4,1fr);gap:8px}.study-counts strong{font-size:31px}.study-counts span{font-size:10px}.footer-inner{align-items:flex-start;flex-direction:column}.codehead{padding-inline:16px}pre{padding:16px;font-size:11px}}
+@media(max-width:360px){.navlinks{gap:12px}h1{font-size:53px}.flow{grid-template-columns:1fr}.flow li+li{border-left:0;border-top:1px solid var(--line)}.study-counts{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-
-<!-- NAV -->
-<nav id="nav">
-  <a class="nav-logo" href="#">
-    <span class="nav-logo-dot"></span>VIGIL
-  </a>
-  <ul class="nav-links">
-    <li><a href="#features">Capabilities</a></li>
-    <li><a href="#pipeline">Pipeline</a></li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#stack">Stack</a></li>
-  </ul>
-  <a class="nav-cta" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">GITHUB ↗</a>
-</nav>
-
-<!-- HERO -->
-<section class="hero" id="home">
-  <canvas id="net-canvas"></canvas>
-
-  <!-- Attack ticker -->
-  <div class="ticker-wrap">
-    <div class="ticker">
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 11 [<span>ipsweep</span>] — severity=1.00 — service_eco_i(15.3%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 03 [<span>normal</span>] — error=0.0044</span>
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 24 — root_shell(27.7%) srv_diff_host_rate(11.1%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 07 [<span>normal</span>] — error=0.0047</span>
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 19 [<span>nmap</span>] — severity=0.73 — dst_host_srv_count(9.2%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 05 [<span>normal</span>] — error=0.0049</span>
-      <!-- duplicate for seamless loop -->
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 11 [<span>ipsweep</span>] — severity=1.00 — service_eco_i(15.3%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 03 [<span>normal</span>] — error=0.0044</span>
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 24 — root_shell(27.7%) srv_diff_host_rate(11.1%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 07 [<span>normal</span>] — error=0.0047</span>
-      <span class="ticker-item">⚠ DRIFT DETECTED — Chunk 19 [<span>nmap</span>] — severity=0.73 — dst_host_srv_count(9.2%)</span>
-      <span class="ticker-item">✓ STABLE — Chunk 05 [<span>normal</span>] — error=0.0049</span>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <nav class="nav wrap" aria-label="Main navigation">
+    <a class="brand" href="#main" aria-label="Vigil home"><svg viewBox="0 0 28 32" fill="none" aria-hidden="true"><path d="M3 3h7l4 17 4-17h7L14 29 3 3Z" stroke="currentColor" stroke-width="1.5"/><path d="M1 15h8m10 0h8" stroke="currentColor"/></svg>vigil<span style="color:var(--accent)">.</span></a>
+    <div class="navlinks"><a href="#system">The system</a><a href="#evidence">Evidence</a><a href="#quickstart">Get started</a><a class="repo" href="https://github.com/Venkateswara-Sahu/OWADD">GitHub <span aria-hidden="true">↗</span></a></div>
+  </nav>
+</header>
+<main id="main" tabindex="-1" class="wrap">
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Open-source drift monitoring</p>
+      <h1 id="hero-title">Observe<br>the <span>shift.</span></h1>
+      <p class="lead">When your data changes, take a closer look. Vigil combines label-free monitoring with feature-error diagnostics and reproducible evaluation.</p>
+      <div class="actions"><a class="button primary" href="#quickstart">Start exploring <span aria-hidden="true">↗</span></a><a class="button" href="#evidence">Read the evidence <span aria-hidden="true">↓</span></a></div>
+      <p class="install"><span aria-hidden="true">$</span><code>pip install vigil-drift</code> · <a href="https://pypi.org/project/vigil-drift/">PyPI ↗</a></p>
     </div>
-  </div>
-
-  <div class="hero-content">
-    <div class="glitch-wrap">
-      <span class="glitch" data-text="VIGIL">VIGIL</span>
-    </div>
-
-    <h1 class="hero-h1" id="h1">
-      Your model knows<br/>when the <span class="accent">data shifts.</span>
-    </h1>
-
-    <p class="hero-sub" id="h-sub">
-      <strong>Label-free monitoring. Explicit limitations.</strong> A drift-monitoring
-      prototype with feature-error rankings and reproducible baseline evaluation.
-    </p>
-
-    <div class="hero-btns" id="h-btns">
-      <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">
-        ★ &nbsp;Star on GitHub
-      </a>
-      <a class="btn-gh" href="https://pypi.org/project/vigil-drift/" target="_blank" style="background:var(--surface2);color:var(--blue);border:1px solid var(--blue-dim)">
-        📦 &nbsp;PyPI Package
-      </a>
-      <a class="btn-docs" href="#usage">Quick Start →</a>
-    </div>
-
-    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-family:var(--mono);font-size:.82rem;color:var(--green);display:inline-block" id="h-pill">
-      <span style="color:var(--muted)">$</span> pip install <span style="color:var(--text)">vigil-drift</span>
-    </div>
-
-    <!-- Terminal -->
-    <div class="hero-term" id="h-term">
-      <div class="term-bar">
-        <div class="term-dots">
-          <span class="td1"></span><span class="td2"></span><span class="td3"></span>
+    <figure style="margin:0">
+      <div class="monitor">
+        <div class="monitor-top"><span>VIGIL / SIGNAL VIEW</span><span>ILLUSTRATION</span></div>
+        <div class="monitor-body">
+          <div class="monitor-label">Reconstruction error</div>
+          <div class="monitor-title">A change worth inspecting.</div>
+          <svg class="chart" viewBox="0 0 400 150" role="img" aria-labelledby="chart-title chart-desc">
+            <title id="chart-title">Illustrative change in reconstruction error</title>
+            <desc id="chart-desc">A low, steady signal rises in a later window. This is a schematic, not measured performance.</desc>
+            <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a1e6cf" stop-opacity=".18"/><stop offset="1" stop-color="#a1e6cf" stop-opacity="0"/></linearGradient></defs>
+            <g stroke="#354640" stroke-width="1"><path d="M0 30h400M0 75h400M0 120h400" stroke-dasharray="3 5"/></g>
+            <path d="M0 110 20 107 35 112 52 104 70 111 90 105 110 110 130 104 150 109 170 105 190 111 205 102 225 108 240 87 255 80 270 91 284 65 300 76 315 45 330 56 345 36 360 43 380 30 400 38V150H0Z" fill="url(#area)"/>
+            <path d="M0 110 20 107 35 112 52 104 70 111 90 105 110 110 130 104 150 109 170 105 190 111 205 102 225 108 240 87 255 80 270 91 284 65 300 76 315 45 330 56 345 36 360 43 380 30 400 38" fill="none" stroke="#a1e6cf" stroke-width="2"/>
+            <path d="M235 10v132" stroke="#a9bbb5" stroke-dasharray="3 5"/>
+            <text x="245" y="20" fill="#a9bbb5" font-size="9" font-family="monospace">inspect window</text>
+          </svg>
+          <div class="chart-labels"><span>REFERENCE</span><span>CURRENT WINDOW</span></div>
+          <div class="feature-scores" role="img" aria-label="Illustrative feature ranking, from highest to lowest: feature A, feature B, feature C">
+            <div class="monitor-label">Feature-error ranking</div>
+            <div class="feature-row" aria-hidden="true"><span>feature_a</span><div class="bar"><span style="width:82%"></span></div></div>
+            <div class="feature-row" aria-hidden="true"><span>feature_b</span><div class="bar"><span style="width:55%"></span></div></div>
+            <div class="feature-row" aria-hidden="true"><span>feature_c</span><div class="bar"><span style="width:29%"></span></div></div>
+          </div>
+          <p class="monitor-note">Diagnostic scores. Not causal explanations.</p>
         </div>
-        <span class="term-title">Illustrative demo output — not a live feed</span>
       </div>
-      <div class="term-body" id="term-out"></div>
+      <figcaption class="hero-caption">SCHEMATIC ONLY · No live traffic or measured results shown.</figcaption>
+    </figure>
+  </section>
+  <div class="strip" aria-label="Project scope"><strong>Built for exploration.</strong><span>Python + PyTorch</span><span>Label-free inference</span><span>MIT licensed</span><span>Research prototype</span></div>
+  <section class="content" id="system" aria-labelledby="system-title">
+    <div class="section-head"><div><p class="eyebrow">01 / The system</p><h2 id="system-title">From changing data<br>to inspectable signals.</h2></div><p>A Python package for monitoring numeric feature streams. The components expose signals for investigation—not automated security verdicts.</p></div>
+    <ol class="flow">
+      <li><span class="step">01 / PREPARE</span><h3>Establish a reference</h3><p>Fit preprocessing on training data. Keep feature order consistent across numeric batches.</p></li>
+      <li><span class="step">02 / RECONSTRUCT</span><h3>Compare representations</h3><p>Adaptive and frozen autoencoders provide reconstruction-error signals.</p></li>
+      <li><span class="step">03 / MONITOR</span><h3>Look for change</h3><p>Replicated statistical tests and KDE novelty scores flag batches for investigation.</p></li>
+      <li><span class="step">04 / INSPECT</span><h3>Rank feature errors</h3><p>Inspect changes in per-feature reconstruction error alongside the drift alert.</p></li>
+    </ol>
+    <div class="integrations"><div><p><strong style="color:var(--ink)">Example integrations</strong><br>Serving, ingestion, tracking and orchestration—not validated production deployments.</p></div><div class="chips" aria-label="Integration technologies"><span>FastAPI</span><span>Kafka</span><span>MLflow</span><span>Airflow</span><span>Streamlit</span><span>Docker Compose</span></div></div>
+  </section>
+  <section class="content" id="evidence" aria-labelledby="evidence-title">
+    <div class="section-head"><div><p class="eyebrow">02 / Research evidence</p><h2 id="evidence-title">Test the explanation.<br>Keep the limitations.</h2></div><p>Does learning a reconstruction model improve feature localization? A bounded study compared trained models, untrained controls and simple statistical baselines.</p></div>
+    <div class="evidence-grid">
+      <div class="scope"><h3>Final mechanism study / September 2026</h3><div class="study-counts"><div><strong>20</strong><span>Evaluation seeds</span></div><div><strong>9</strong><span>Ranking methods</span></div><div><strong>18</strong><span>Synthetic conditions</span></div><div><strong>6</strong><span>Real-data conditions</span></div></div><p>Controlled injections into CICIDS2017 development flow features. Recall@3 measures recovery of injected feature indices, <strong>not attack recall</strong>.</p></div>
+      <div class="findings"><span class="status">Conclusion / Mixed evidence</span><h3>Useful in some settings.<br>No general superiority established.</h3><p>Training improved localization in some dependency-shift conditions, but also hurt small-mean localization. Simple KS and correlation baselines remained stronger in several tested conditions.</p><p>The continuation criterion was not met. The original default is retained; alternative rankings remain experimental.</p><a href="https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-decision-2026-09-28.md">Read the full findings <span aria-hidden="true">↗</span></a>
+      <details><summary>Study boundaries &amp; publication status</summary><ul><li>Semi-synthetic development experiments, not held-out attack detection or live deployment validation.</li><li>Feature rankings are diagnostic, not causal explanations. Uncertainty intervals are exploratory.</li><li>The historical manuscript is unpublished and superseded. No Vigil publication or proven method novelty is claimed.</li><li>Protocols and compact reports are public; raw datasets, caches and per-run outputs are not distributed.</li></ul></details></div>
     </div>
-  </div>
-</section>
+  </section>
+  <section class="content" id="quickstart" aria-labelledby="quick-title">
+    <div class="quick-grid"><div><p class="eyebrow">03 / Get started</p><h2 id="quick-title">Start with<br>your baseline.</h2><p>Supply finite numeric arrays with consistent columns. Calibrate thresholds and evaluate on your own task before relying on an alert.</p><div class="actions"><a class="button primary" href="https://pypi.org/project/vigil-drift/">Get the package <span aria-hidden="true">↗</span></a></div><p><a class="textlink" href="https://github.com/Venkateswara-Sahu/OWADD#quick-start">Source setup &amp; documentation ↗</a></p></div>
+    <div><div class="codebox"><div class="codehead"><span>PYTHON / BASIC USAGE</span><span>vigil-drift</span></div><pre tabindex="0" role="region" aria-label="Python quick-start example, scroll horizontally for long lines"><code><span class="comment"># pip install vigil-drift</span>
+<span class="keyword">from</span> vigil <span class="keyword">import</span> Vigil
 
-<!-- FEATURES -->
-<section id="features">
-<div class="c">
-  <div class="s-tag">Capabilities</div>
-  <h2 class="s-title reveal">Drift detection<br/>with inspectable feature scores.</h2>
-  <p class="s-sub reveal">Vigil ranks reconstruction-error changes. These scores are not causal explanations or validated attack labels.</p>
+<span class="comment"># Provide your preprocessed data and column names.</span>
+monitor = Vigil(feature_names=feature_names)
+monitor.fit(baseline_data)
 
-  <div class="feat-grid">
-    <div class="feat-card reveal">
-      <div class="feat-num">01</div>
-      <div class="feat-icon">🔬</div>
-      <div class="feat-title">Unsupervised Detection</div>
-      <div class="feat-desc">Replicated T-Test (r=15) on autoencoder reconstruction errors. Zero ground-truth labels needed. Requires calibration and evaluation before operational use.</div>
-      <span class="feat-tag">NO LABELS REQUIRED</span>
-    </div>
-    <div class="feat-card reveal">
-      <div class="feat-num">02</div>
-      <div class="feat-icon">🆕</div>
-      <div class="feat-title">Novel Class Recognition</div>
-      <div class="feat-desc">A frozen mirror autoencoder (A_KC) supports KDE novelty scoring. Scores do not establish the identity of unknown attack classes.</div>
-      <span class="feat-tag">DUAL AUTOENCODER</span>
-    </div>
-    <div class="feat-card reveal">
-      <div class="feat-num">03</div>
-      <div class="feat-icon">📊</div>
-      <div class="feat-title">Feature Attribution</div>
-      <div class="feat-desc">DriftAttributor ranks input features by reconstruction-error delta. Normalized contributions are scores, not percentages of input change.</div>
-      <span class="feat-tag">EXPERIMENTAL RANKING</span>
-    </div>
-    <div class="feat-card reveal">
-      <div class="feat-num">04</div>
-      <div class="feat-icon">🏭</div>
-      <div class="feat-title">Integration Examples</div>
-      <div class="feat-desc">FastAPI REST. Kafka stream. Airflow retraining DAGs with quality gates. MLflow tracking. Docker compose. Five services, one command.</div>
-      <span class="feat-tag">RESEARCH PROTOTYPE</span>
-    </div>
-  </div>
-</div>
-</section>
+<span class="keyword">for</span> batch <span class="keyword">in</span> stream:
+    result = monitor.detect(batch)
 
-<section id="research-status"><div class="c">
-  <h2>Research status</h2>
-  <p>Controlled evaluation did not establish a generally superior new attribution method.
-  Some trained rankings improved on controls, but simple statistical baselines remained
-  stronger in several conditions. The original default is unchanged.</p>
-  <p><a href="https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md">Read the evidence and limitations</a>.
-  The old manuscript is unpublished and superseded; no Vigil publication is claimed.</p>
-</div></section>
-<!-- STATS -->
-<section id="stats">
-<div class="c">
-  <div class="stats-grid">
-    <div class="stat-ring-wrap reveal">
-      <div class="stat-ring">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--blue)" data-pct="100"/>
-        </svg>
-        <div class="stat-val" data-target="20">0</div>
-      </div>
-      <div class="stat-label">Final Study Seeds</div>
-    </div>
-    <div class="stat-ring-wrap reveal">
-      <div class="stat-ring">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--green)" data-pct="100"/>
-        </svg>
-        <div class="stat-val" data-target="9">0</div>
-      </div>
-      <div class="stat-label">Compared Rankings</div>
-    </div>
-    <div class="stat-ring-wrap reveal">
-      <div class="stat-ring">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--amber)" data-pct="100"/>
-        </svg>
-        <div class="stat-val" data-target="5">0</div>
-      </div>
-      <div class="stat-label">Docker Services</div>
-    </div>
-    <div class="stat-ring-wrap reveal">
-      <div class="stat-ring">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--red)" data-pct="100"/>
-        </svg>
-        <div class="stat-val" data-target="2">0</div>
-      </div>
-      <div class="stat-label">Airflow DAGs</div>
-    </div>
-    <div class="stat-ring-wrap reveal">
-      <div class="stat-ring">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="ring-track" cx="50" cy="50" r="45"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" stroke="var(--blue)" data-pct="100"/>
-        </svg>
-        <div class="stat-val" data-target="122">0</div>
-      </div>
-      <div class="stat-label">NSL-KDD Features</div>
-    </div>
-  </div>
-</div>
-</section>
-
-<!-- PIPELINE -->
-<section id="pipeline">
-<div class="c">
-  <div class="s-tag">Architecture</div>
-  <h2 class="s-title reveal">Monitoring components.<br/>Example integrations.</h2>
-  <p class="s-sub reveal">Prepared feature chunks connect the monitoring, tracking and retraining examples. This is not a validated raw-packet or autonomous production pipeline.</p>
-
-  <div class="pipe-grid">
-    <div class="pipe-node reveal">
-      <div class="pipe-icon">📡</div>
-      <div class="pipe-label">Kafka</div>
-      <div class="pipe-sub">Stream ingestion</div>
-    </div>
-    <div class="pipe-arrow-wrap reveal">
-      <svg width="40" height="12" viewBox="0 0 40 12">
-        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="pipe-node active reveal">
-      <div class="pipe-icon">🛡️</div>
-      <div class="pipe-label">Vigil</div>
-      <div class="pipe-sub">Drift detection</div>
-    </div>
-    <div class="pipe-arrow-wrap reveal">
-      <svg width="40" height="12" viewBox="0 0 40 12">
-        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="pipe-node reveal">
-      <div class="pipe-icon">📈</div>
-      <div class="pipe-label">MLflow</div>
-      <div class="pipe-sub">Experiment tracking</div>
-    </div>
-    <div class="pipe-arrow-wrap reveal">
-      <svg width="40" height="12" viewBox="0 0 40 12">
-        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="pipe-node reveal">
-      <div class="pipe-icon">✈️</div>
-      <div class="pipe-label">Airflow</div>
-      <div class="pipe-sub">Auto-retraining</div>
-    </div>
-    <div class="pipe-arrow-wrap reveal">
-      <svg width="40" height="12" viewBox="0 0 40 12">
-        <path d="M0 6 L34 6 M28 1 L34 6 L28 11" stroke="var(--border)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="pipe-node reveal">
-      <div class="pipe-icon">🖥️</div>
-      <div class="pipe-label">SOC Dashboard</div>
-      <div class="pipe-sub">Live monitoring</div>
-    </div>
-  </div>
-</div>
-</section>
-
-<!-- USAGE -->
-<section id="usage">
-<div class="c">
-  <div class="s-tag">Quick Start</div>
-  <h2 class="s-title reveal">Three lines.<br/>Real detections.</h2>
-  <div class="code-wrap reveal">
-    <div class="code-bar">
-      <div class="term-dots"><span class="td1"></span><span class="td2"></span><span class="td3"></span></div>
-      <span class="code-file">main.py</span>
-      <span class="code-lang">Python 3.11</span>
-    </div>
-    <pre><span class="cm"># pip install vigil-drift</span>
-
-<span class="ck">from</span> vigil <span class="ck">import</span> <span class="cc">Vigil</span>
-
-v <span class="ck">=</span> <span class="cc">Vigil</span>(feature_names<span class="ck">=</span>your_feature_names)
-v.<span class="cf">fit</span>(baseline_traffic)          <span class="cm"># offline phase</span>
-
-<span class="ck">for</span> batch <span class="ck">in</span> live_stream:
-    result <span class="ck">=</span> v.<span class="cf">detect</span>(batch)
-
-    <span class="ck">if</span> result.drift_detected:
-        <span class="cf">print</span>(<span class="cs">f"⚠  severity={result.drift_severity:.2f}"</span>)
-
-        <span class="ck">for</span> f <span class="ck">in</span> result.attribution.top_features:
-            <span class="cf">print</span>(<span class="cs">f"   {f['feature_name']}: {f['contribution']:.1%}"</span>)
-
-<span class="cm"># ⚠  severity=1.00</span>
-<span class="cm"># → service_eco_i              15.3%   (illustrative score)</span>
-<span class="cm"># → dst_host_same_src_port_rate 12.3%   (illustrative score)</span>
-<span class="cm"># → srv_diff_host_rate          11.1%   (illustrative score)</span></pre>
-  </div>
-</div>
-</section>
-
-<!-- STACK -->
-<section id="stack">
-<div class="c">
-  <div class="s-tag">Tech Stack</div>
-  <h2 class="s-title reveal">Industry tools.<br/>Real ML.</h2>
-  <div class="stack-row" id="stk-row">
-    <div class="stk">PyTorch</div><div class="stk">scikit-learn</div>
-    <div class="stk">SciPy</div><div class="stk">NumPy</div>
-    <div class="stk">FastAPI</div><div class="stk">Pydantic</div>
-    <div class="stk">Uvicorn</div><div class="stk">MLflow</div>
-    <div class="stk">Apache Kafka</div><div class="stk">Apache Airflow</div>
-    <div class="stk">Docker</div><div class="stk">Streamlit</div>
-    <div class="stk">Plotly</div><div class="stk">GitHub Actions</div>
-    <div class="stk">pytest</div><div class="stk">Ruff</div>
-    <div class="stk">NSL-KDD Dataset</div>
-  </div>
-</div>
-</section>
-
-<!-- CTA -->
-<section id="cta">
-<div class="c">
-  <div class="s-tag">Open Source · MIT</div>
-  <h2 class="s-title reveal">Clone it.<br/>Break it.<br/>Build on it.</h2>
-  <p class="s-sub reveal">Everything is on GitHub. The algorithm, the API, the Airflow DAGs, the Kafka pipeline, the dashboard. All of it.</p>
-  <div class="hero-btns" style="justify-content:center;margin-top:40px">
-    <a class="btn-gh" href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">★ &nbsp;Star on GitHub</a>
-    <a class="btn-docs" href="https://github.com/Venkateswara-Sahu/OWADD#quick-start" target="_blank">Read Docs →</a>
-  </div>
-</div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div>🛡️ VIGIL · MIT · <a href="https://arxiv.org/abs/2605.29834" target="_blank">Referenced base work: arXiv:2605.29834</a></div>
-  <div class="footer-links">
-    <a href="https://github.com/Venkateswara-Sahu/OWADD" target="_blank">GitHub</a>
-    <a href="https://arxiv.org/abs/2605.29834" target="_blank">Referenced base work</a>
-    <a href="https://github.com/Venkateswara-Sahu/OWADD#example-integrations" target="_blank">API</a>
-  </div>
-</footer>
-
-<script>
-// ── Lenis ────────────────────────────────────────────────────────────────────
-const lenis = new Lenis({lerp:.08,smoothWheel:true});
-(function raf(t){lenis.raf(t);requestAnimationFrame(raf)})(0);
-
-// ── Canvas network ───────────────────────────────────────────────────────────
-const canvas = document.getElementById('net-canvas');
-const ctx    = canvas.getContext('2d');
-let W, H, nodes = [], frame = 0;
-
-function resize(){
-  W = canvas.width  = canvas.offsetWidth;
-  H = canvas.height = canvas.offsetHeight;
-  initNodes();
-}
-
-function initNodes(){
-  nodes = Array.from({length: Math.floor(W*H/14000)}, () => ({
-    x: Math.random()*W, y: Math.random()*H,
-    vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4,
-    r: Math.random()*1.5+.8,
-    attack: Math.random() < .08,
-    alertT: 0,
-  }));
-}
-
-function drawNetwork(){
-  ctx.clearRect(0,0,W,H);
-  frame++;
-
-  // Randomly flip a node to "attack" state
-  if(frame % 90 === 0){
-    const n = nodes[Math.floor(Math.random()*nodes.length)];
-    n.attack = true; n.alertT = 120;
-  }
-
-  nodes.forEach(n => {
-    n.x += n.vx; n.y += n.vy;
-    if(n.x<0||n.x>W) n.vx*=-1;
-    if(n.y<0||n.y>H) n.vy*=-1;
-    if(n.alertT > 0) n.alertT--;
-    else if(n.alertT === 0 && n.attack) n.attack = false;
-  });
-
-  // Draw edges
-  for(let i=0;i<nodes.length;i++){
-    for(let j=i+1;j<nodes.length;j++){
-      const dx = nodes[i].x-nodes[j].x, dy = nodes[i].y-nodes[j].y;
-      const d  = Math.sqrt(dx*dx+dy*dy);
-      if(d<130){
-        const alert = nodes[i].attack || nodes[j].attack;
-        ctx.beginPath();
-        ctx.strokeStyle = alert
-          ? `rgba(248,81,73,${(1-d/130)*.3})`
-          : `rgba(88,166,255,${(1-d/130)*.12})`;
-        ctx.lineWidth = alert ? 1 : .5;
-        ctx.moveTo(nodes[i].x,nodes[i].y);
-        ctx.lineTo(nodes[j].x,nodes[j].y);
-        ctx.stroke();
-      }
-    }
-  }
-
-  // Draw nodes
-  nodes.forEach(n => {
-    ctx.beginPath();
-    if(n.attack){
-      ctx.arc(n.x,n.y,n.r*2.5,0,Math.PI*2);
-      ctx.fillStyle = `rgba(248,81,73,${.5+Math.sin(frame*.2)*.3})`;
-      ctx.fill();
-      // pulse ring
-      ctx.beginPath();
-      const pr = n.r*2.5 + (120-n.alertT)/8;
-      ctx.arc(n.x,n.y,pr,0,Math.PI*2);
-      ctx.strokeStyle = `rgba(248,81,73,${n.alertT/120*.4})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else {
-      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(88,166,255,.5)';
-      ctx.fill();
-    }
-  });
-
-  requestAnimationFrame(drawNetwork);
-}
-
-window.addEventListener('resize', resize);
-resize();
-drawNetwork();
-
-// ── Hero entrance ────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  anime.timeline({easing:'easeOutExpo'})
-    .add({targets:'#h1',     opacity:[0,1],translateY:[40,0],duration:800})
-    .add({targets:'#h-sub',  opacity:[0,1],translateY:[24,0],duration:700},'-=500')
-    .add({targets:'#h-btns', opacity:[0,1],translateY:[16,0],duration:600},'-=400')
-    .add({targets:'#h-term', opacity:[0,1],translateY:[24,0],duration:600},'-=300');
-  setTimeout(typeTerminal, 1000);
-});
-
-// ── Terminal ─────────────────────────────────────────────────────────────────
-const termLines = [
-  {c:'tp', t:'$ python kafka_pipeline/consumer.py'},
-  {c:'to', t:'[Consumer] Connecting to Kafka at localhost:9092...'},
-  {c:'to', t:'[Consumer] Listening on topic=\'network-stream\'...'},
-  {c:'to', t:'[Consumer] Chunk 01 — TRAINING (200 samples, 4.0s)'},
-  {c:'ts', t:'[Consumer] Chunk 02 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0052'},
-  {c:'ts', t:'[Consumer] Chunk 05 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0049'},
-  {c:'ts', t:'[Consumer] Chunk 09 [normal    ] ✓ STABLE  | severity=0.00 | error=0.0048'},
-  {c:'td', t:'[Consumer] Chunk 11 [ipsweep   ] ⚠ DRIFT   | severity=1.00 | error=0.0223'},
-  {c:'tf', t:'             → service_eco_i(15.3%), dst_host_same_src_port_rate(12.3%)'},
-  {c:'ts', t:'[Consumer] Chunk 18 [normal    ] ✓ STABLE  | severity=0.13 | error=0.0146'},
-  {c:'td', t:'[Consumer] Chunk 24 [normal    ] ⚠ DRIFT   | severity=0.33 | error=0.0175'},
-  {c:'tf', t:'             → root_shell(27.7%), service_telnet(21.5%)'},
-  {c:'to', t:'[Consumer] Done. Processed 25 chunks total.'},
-];
-
-async function typeTerminal(){
-  const out = document.getElementById('term-out');
-  for(const line of termLines){
-    await new Promise(r=>setTimeout(r,220));
-    const el = document.createElement('div');
-    el.className = `tl ${line.c}`;
-    el.textContent = line.t;
-    out.appendChild(el);
-  }
-  const cur = document.createElement('span');
-  cur.className = 'tcu';
-  out.lastChild.appendChild(cur);
-}
-
-// ── Scroll reveals (bidirectional) ─────────────────────────────────────────
-const revealObs = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if(e.isIntersecting){
-      setTimeout(()=>{ e.target.classList.add('in'); }, parseInt(e.target.dataset.delay)||0);
-    } else {
-      e.target.classList.remove('in');
-    }
-  });
-},{threshold:.12, rootMargin:'-40px 0px'});
-document.querySelectorAll('.reveal').forEach((el,i)=>{
-  el.dataset.delay = (i%4)*80;
-  revealObs.observe(el);
-});
-
-// ── Stat rings (bidirectional) ───────────────────────────────────────────────
-const circ = 2*Math.PI*45; // 283
-const ringObs = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    const wrap = e.target;
-    const ring = wrap.querySelector('.ring-fill');
-    const val  = wrap.querySelector('.stat-val');
-    const pct  = parseInt(ring.dataset.pct);
-    const target = parseInt(val.dataset.target);
-
-    if(e.isIntersecting){
-      anime({ targets: ring, strokeDashoffset: [circ, circ*(1-pct/100)], duration:1600, easing:'easeOutQuart' });
-      anime({ targets: val, innerHTML:[0,target], round:1, duration:1400, easing:'easeOutQuart',
-        update:()=>{ val.innerHTML = Math.round(val.innerHTML); } });
-    } else {
-      // reset so it re-animates next time
-      ring.style.strokeDashoffset = circ;
-      val.innerHTML = '0';
-    }
-  });
-},{threshold:.4});
-document.querySelectorAll('.stat-ring-wrap').forEach(el=>ringObs.observe(el));
-
-// ── Stack badges (bidirectional) ────────────────────────────────────────────
-const stackObs = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      anime({
-        targets:'#stk-row .stk',
-        opacity:[0,1],translateY:[16,0],
-        duration:400,delay:anime.stagger(40),easing:'easeOutExpo'
-      });
-    } else {
-      // reset for next scroll-in
-      anime({ targets:'#stk-row .stk', opacity:0, translateY:16, duration:0 });
-    }
-  });
-},{threshold:.1});
-stackObs.observe(document.getElementById('stk-row'));
-</script>
+    <span class="keyword">if</span> result.attribution <span class="keyword">is not None</span>:
+        <span class="keyword">for</span> feature <span class="keyword">in</span> result.attribution.top_features:
+            print(feature["feature_name"],
+                  feature["contribution"])</code></pre></div><p class="quicknote">Contributions are normalized reconstruction-error scores—not probabilities or percentages of input change.</p></div></div>
+  </section>
+</main>
+<footer class="wrap"><div class="footer-inner"><div><a class="brand" href="#main">vigil.</a><p class="footer-copy">Built by Venkateswara Sahu · Open source · MIT</p></div><div class="footer-links"><a href="https://github.com/Venkateswara-Sahu/OWADD">GitHub ↗</a><a href="https://pypi.org/project/vigil-drift/">PyPI ↗</a><a href="https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md">Research notes ↗</a></div></div></footer>
 </body>
 </html>
