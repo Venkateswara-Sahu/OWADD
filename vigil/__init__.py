@@ -33,7 +33,7 @@ from vigil.sentinel import Vigil
 # Keep Vigil as an alias so nothing breaks during transition
 Vigil = Vigil
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __author__  = "Venkateswara Sahu"
 __paper__   = "arXiv:2605.29834"
 
