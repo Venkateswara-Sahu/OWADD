@@ -1,0 +1,10 @@
+dataset: synthetic
+method: vigil
+seed: 42
+split: test
+chunk_size: 40
+tolerance_chunks: 1
+params:
+  n_reference: 200
+  n_chunks: 6
+  n_features: 8

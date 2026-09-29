@@ -1,8 +1,8 @@
 """
 Vigil
 =====
-Production-ready unsupervised drift detection for network traffic streams.
-Feature-level attribution tells you exactly which signals changed.
+Experimental unsupervised drift monitoring for network traffic streams.
+Feature rankings describe reconstruction-error changes, not causal shifts.
 
 Based on: "Open World Autoencoding Drift Detection with Novel Class Recognition
 in Tabular Non-stationary Data Streams" (arXiv:2605.29834)
@@ -38,10 +38,9 @@ __author__  = "Venkateswara Sahu"
 __paper__   = "arXiv:2605.29834"
 
 __all__ = [
-    "Vigil",
-    "Vigil",   # backwards-compat alias
     "Autoencoder",
     "DriftAttributor",
     "DriftDetector",
     "NoveltyDetector",
+    "Vigil",
 ]

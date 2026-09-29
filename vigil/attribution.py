@@ -1,12 +1,12 @@
 ﻿"""
-Feature Attribution Module (Original Contribution)
+Feature Reconstruction-Error Attribution
 ===================================================
 This module extends arXiv:2605.29834 with feature-level drift attribution.
 
 The original OWADD paper only answers: "Did drift happen?" (yes/no).
-This module answers: "WHICH features caused the drift and by how much?"
+This module answers: "WHICH features show increased reconstruction error?"
 
-Approach: Gradient-based feature attribution on the autoencoder.
+Approach: Differences in mean per-feature squared reconstruction error.
   For each feature, we compute how much it contributed to the increase in
   reconstruction error between the reference distribution and the current batch.
 
@@ -16,11 +16,12 @@ Approach: Gradient-based feature attribution on the autoencoder.
     3. Normalize contributions to get a proportion (sums to 1.0).
     4. Rank features by their drift contribution.
 
-This is the key NOVEL CONTRIBUTION of Vigil over the base paper.
-It makes drift detection ACTIONABLE — engineers know exactly where to look.
+These scores are heuristic rankings, not causal explanations or attack labels.
+Evaluation did not establish consistent superiority over simple baselines;
+see docs/research-status.md.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import torch
@@ -50,15 +51,16 @@ class AttributionResult:
     feature_error_delta: np.ndarray
     top_features: list
     feature_names: list
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 class DriftAttributor:
     """
     Computes feature-level attribution for detected concept drift.
 
-    This is the original contribution of Vigil beyond arXiv:2605.29834.
-    It pinpoints which features are responsible for triggering drift detection,
-    making drift alerts actionable for data engineers and ML teams.
+    Identifies features associated with reconstruction-error changes.
+    The default positive-only rule is retained for compatibility; alternatives
+    are experimental and do not establish method novelty or superiority.
 
     Parameters
     ----------
@@ -123,7 +125,7 @@ class DriftAttributor:
         Compares how each feature's reconstruction error has changed
         between the stable reference data and the current (possibly drifted)
         batch. Features with the largest increase in reconstruction error
-        are the primary drivers of the detected drift.
+        are the strongest reconstruction-error indicators of the detected drift.
 
         Parameters
         ----------
@@ -162,8 +164,8 @@ class DriftAttributor:
         if total > 0:
             contributions = positive_delta / total
         else:
-            # All errors decreased or stayed the same — uniform attribution
-            contributions = np.ones(n_features) / n_features
+            # No feature provides positive reconstruction-error evidence.
+            contributions = np.zeros(n_features)
 
         # Build ranked list of top-k features
         top_indices = np.argsort(contributions)[::-1][: self.top_k]
@@ -182,4 +184,5 @@ class DriftAttributor:
             feature_error_delta=error_delta,
             top_features=top_features,
             feature_names=names,
+            metadata={"no_positive_delta": bool(total <= 0)},
         )

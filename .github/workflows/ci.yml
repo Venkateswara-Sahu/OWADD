@@ -26,14 +26,11 @@ jobs:
           cache: "pip"
 
       - name: Install package and dev dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,research]"
 
       - name: Run tests with coverage
         run: |
           python -m pytest tests/ -v --cov=vigil --cov-report=term-missing
-
-      - name: Auto-fix ruff issues
-        run: ruff check vigil/ --fix --unsafe-fixes
 
       - name: Lint with ruff (fail on remaining issues)
         run: ruff check vigil/
