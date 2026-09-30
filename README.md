@@ -1,5 +1,7 @@
 # Vigil
 
+[![CI](https://github.com/Venkateswara-Sahu/OWADD/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Venkateswara-Sahu/OWADD/actions/workflows/ci.yml)
+
 Unsupervised drift-monitoring prototype and reproducible attribution evaluation.
 
 [PyPI](https://pypi.org/project/vigil-drift/) · [Project site](https://venkateswara-sahu.github.io/OWADD/) · [Research evidence](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md)
@@ -64,6 +66,20 @@ These integrations do not establish security hardening, throughput guarantees or
 Read the [research status](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md) and [final decision report](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-decision-2026-09-28.md).
 
 The final bounded study covered 20 seeds, nine ranking methods, 18 synthetic conditions and six controlled real-data conditions. Real-data tests injected shifts into reserved CICIDS2017 development flow features; they were not held-out attack detection or live chronological deployment tests. Results and limitations are reported together rather than collapsed into a winning headline.
+
+### Selected evaluation results
+
+Mean **Recall@3 (%) across 20 seeds**: the fraction of the two injected feature indices recovered among the top three ranked features. This measures feature localization, not attack recall or causal explanation.
+
+| Condition | Trained absolute ranking | Relevant simple baseline |
+| --- | ---: | --- |
+| Synthetic small mean shift +0.5 | 32.5% | KS: 100% |
+| Synthetic correlated background 0.3, dependency increase +0.6, 800 rows | 97.5% | Correlation: 100% |
+| Real-data column permutation | 27.5% | Correlation: 65% |
+
+The trained absolute reconstruction-error-change ranking is an **experimental variant**, not the unchanged positive-only package default. These are selected named conditions, not an overall score. Training improved some dependency-shift results relative to untrained controls, but simple baselines remained stronger in these examples.
+
+The [frozen protocol](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-protocol.md) and [full decision report](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-decision-2026-09-28.md) document the broader comparison, exploratory uncertainty intervals and development-study limitations.
 
 Raw datasets, prepared caches and per-run outputs are not distributed. Protocols, source, tests and compact reports are retained. Reproduction requires obtaining the specified data separately.
 
