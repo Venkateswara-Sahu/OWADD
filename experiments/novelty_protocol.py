@@ -193,7 +193,11 @@ def freeze_threshold(path, protocol, validation_scores, candidates, *, model_id)
         with temporary.open("x", encoding="utf-8") as file:
             json.dump(payload, file, indent=2, allow_nan=False)
         # Atomic no-overwrite publication on the same filesystem.
-        os.link(temporary, path)
+        try:
+            os.link(temporary, path)
+        except PermissionError:
+            with path.open("xb") as dst:
+                dst.write(temporary.read_bytes())
     finally:
         temporary.unlink(missing_ok=True)
     return payload

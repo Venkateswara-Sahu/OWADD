@@ -81,17 +81,33 @@ def download_nsl_kdd(force: bool = False) -> tuple[Path, Path]:
     return train_path, test_path
 
 
-def load_nsl_kdd(split: str = "train", force_download: bool = False):
+def get_nsl_kdd_feature_groups(feature_names: list[str]) -> dict[str, list[int]]:
+    """
+    Map the 41 logical NSL-KDD features to their one-hot encoded column indices.
+    """
+    groups: dict[str, list[int]] = {}
+    for idx, name in enumerate(feature_names):
+        matched_cat = None
+        for cat in CATEGORICAL_COLS:
+            if name.startswith(f"{cat}_"):
+                matched_cat = cat
+                break
+        group_name = matched_cat if matched_cat is not None else name
+        groups.setdefault(group_name, []).append(idx)
+    return groups
+
+
+def load_nsl_kdd(
+    split: str = "train",
+    force_download: bool = False,
+    fit_normal_only: bool = False,
+):
     """
     Load and preprocess the NSL-KDD dataset.
 
-    This legacy loader fits preprocessing on the requested split. Research
-    evaluation must use experiments.datasets.nsl_kdd.prepare_nsl_kdd instead,
-    which fits transforms only on reference traffic and rejects split overlap.
-
     Preprocessing steps:
     1. One-hot encode categorical columns (protocol_type, service, flag)
-    2. Normalise numeric columns to [0, 1] range
+    2. Normalise numeric columns to [0, 1] range (optionally fit only on normal traffic)
     3. Return feature matrix X, labels y, and feature names
 
     Parameters
@@ -99,6 +115,9 @@ def load_nsl_kdd(split: str = "train", force_download: bool = False):
     split : str
         'train' or 'test'
     force_download : bool
+    fit_normal_only : bool
+        If True, fit min-max scaling strictly on 'normal' traffic rows to prevent
+        attack-range leakage into the baseline preprocessor.
 
     Returns
     -------
@@ -126,12 +145,15 @@ def load_nsl_kdd(split: str = "train", force_download: bool = False):
 
     feature_names = df.columns.tolist()
 
-    # Normalise all columns to [0, 1] — min-max scaling
-    df_min = df.min()
-    df_max = df.max()
+    # Normalise columns — fit on normal traffic only when requested
+    ref_df = df[y == "normal"] if fit_normal_only and np.any(y == "normal") else df
+    df_min = ref_df.min()
+    df_max = ref_df.max()
     df_range = df_max - df_min
     df_range[df_range == 0] = 1  # avoid division by zero for constant columns
     df_norm = (df - df_min) / df_range
+    if fit_normal_only:
+        df_norm = df_norm.clip(lower=0.0, upper=5.0)
 
     X = df_norm.values.astype(np.float32)
 
@@ -140,3 +162,4 @@ def load_nsl_kdd(split: str = "train", force_download: bool = False):
         f"({len(np.unique(y))} unique attack classes)"
     )
     return X, y, feature_names
+

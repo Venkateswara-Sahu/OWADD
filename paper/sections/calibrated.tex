@@ -1,0 +1,188 @@
+\begin{table*}[!tp]
+\centering
+\caption{Family-wise false-alarm rate with nothing injected (nominal 5\%, 199 permutations, 500 trials per cell; column keys: \textup{\textit{Dec.}}\ = decomposed Copula--KS as published, \textup{\textit{Dec.\ ($\alpha$/2)}} = the same with the $\alpha$ split, \textup{\textit{KS}} and \textup{\textit{Cop.}}\ = single pathways, \textup{\textit{Pear.}}\ = raw Pearson, \textup{\textit{Cal.\ max-edge}} and \textup{\textit{Cal.\ peel}} = the calibrated policy with the max-edge and greedy-peeling orders, \textup{\textit{Peel, no split}} and \textup{\textit{Peel, rank}} = peeling with an unsplit $\alpha$ and with the rank copula statistic; entries are point estimates; 95\% Wilson intervals are in \textup{\texttt{summary.json}} and in the repository's markdown rendering). Real-data rows draw both windows from one row-disjoint block of a single split, so they are null pairs that resample a fixed block set; the block-clustered interval in the artifact is the one to quote there.}
+\label{tab:null-calibration}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Null population & Dec.\ & Dec.\ ($\alpha$/2) & KS & Cop.\ & Pear.\ & Cal.\ max-edge & Cal.\ peel & Peel, no split & Peel, rank \\
+\midrule
+Gaussian & 8.6 & 3.8 & 3.8 & 4.8 & 4.4 & 3.8 & 3.8 & 9.8 & 3.4 \\
+Zero-inflated, tied & 9.8 & 7.4 & 0.2 & 9.6 & 100.0 & 5.8 & 5.8 & 10.6 & 5.2 \\
+Multivariate $t_3$ & 45.8 & 36.2 & 2.6 & 44.8 & 100.0 & 3.2 & 3.2 & 8.4 & 3.4 \\
+CICIDS2017 Tuesday (no injection) & 59.0 & 54.4 & 2.0 & 59.0 & 100.0 & 4.4 & 4.4 & 10.2 & 3.8 \\
+CICIDS2017 held-out (no injection) & 57.8 & 53.2 & 1.2 & 57.8 & 99.8 & 3.2 & 3.2 & 8.6 & 3.2 \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+\begin{table*}[!tp]
+\centering
+\caption{Recall@3 (\%) per condition against the uniform-random line $3/d = 15.0$\% (every condition injects the same number of truth features per window, including the permutation, whose truth spans two windows). Peeling is the calibrated ranking; its decision rule is the joint family-wise test of Table~\ref{tab:null-calibration}.}
+\label{tab:localization}
+\footnotesize
+\renewcommand{\arraystretch}{0.90}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrrrr}
+\toprule
+Dataset & Condition & Chance & Decomposed & KS & Copula & Pearson & Max-edge & Peeling & Peeling (rank) \\
+\midrule
+gaussian & mean\_0.2\_k2 & 15.0 & 55.0 & 72.5 & 22.5 & 25.0 & 67.5 & 67.5 & 67.5 \\
+gaussian & mean\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 22.5 & 25.0 & 100.0 & 100.0 & 100.0 \\
+gaussian & mean\_0.5\_k2\_sparse20 & 15.0 & 32.5 & 27.5 & 30.0 & 22.5 & 30.0 & 30.0 & 35.0 \\
+gaussian & mean\_0.5\_k2\_sparse5 & 15.0 & 25.0 & 15.0 & 25.0 & 22.5 & 20.0 & 20.0 & 22.5 \\
+gaussian & paircorr\_0.3\_k2 & 15.0 & 70.0 & 17.5 & 70.0 & 70.0 & 67.5 & 67.5 & 60.0 \\
+gaussian & paircorr\_0.8\_k2 & 15.0 & 100.0 & 17.5 & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 \\
+gaussian & permute\_k1 & 15.0 & 100.0 & 10.0 & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 \\
+gaussian & permute\_k2 & 15.0 & 62.5 & 17.5 & 62.5 & 52.5 & 55.0 & 95.0 & 87.5 \\
+gaussian & permute\_k2\_sparse20 & 15.0 & 37.5 & 17.5 & 47.5 & 37.5 & 37.5 & 37.5 & 37.5 \\
+gaussian & permute\_k5 & 15.0 & 32.0 & 11.0 & 32.0 & 26.0 & 24.0 & 59.0 & 57.0 \\
+gaussian & scale\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 22.5 & 25.0 & 100.0 & 100.0 & 100.0 \\
+gaussian & scale\_0.5\_k2\_sparse20 & 15.0 & 30.0 & 27.5 & 22.5 & 22.5 & 35.0 & 35.0 & 30.0 \\
+gaussian & scale\_2\_k2 & 15.0 & 100.0 & 100.0 & 22.5 & 25.0 & 100.0 & 100.0 & 100.0 \\
+\midrule
+multivariate\_t3 & mean\_0.2\_k2 & 15.0 & 40.0 & 70.0 & 10.0 & 7.5 & 55.0 & 55.0 & 60.0 \\
+multivariate\_t3 & mean\_0.5\_k2 & 15.0 & 92.5 & 100.0 & 10.0 & 7.5 & 100.0 & 100.0 & 100.0 \\
+multivariate\_t3 & mean\_0.5\_k2\_sparse20 & 15.0 & 15.0 & 32.5 & 12.5 & 7.5 & 20.0 & 20.0 & 22.5 \\
+multivariate\_t3 & mean\_0.5\_k2\_sparse5 & 15.0 & 15.0 & 7.5 & 15.0 & 7.5 & 7.5 & 7.5 & 17.5 \\
+multivariate\_t3 & paircorr\_0.3\_k2 & 15.0 & 60.0 & 7.5 & 60.0 & 37.5 & 60.0 & 60.0 & 60.0 \\
+multivariate\_t3 & paircorr\_0.8\_k2 & 15.0 & 100.0 & 7.5 & 100.0 & 77.5 & 100.0 & 100.0 & 100.0 \\
+multivariate\_t3 & permute\_k1 & 15.0 & 100.0 & 0.0 & 100.0 & 65.0 & 100.0 & 100.0 & 100.0 \\
+multivariate\_t3 & permute\_k2 & 15.0 & 70.0 & 7.5 & 70.0 & 45.0 & 65.0 & 92.5 & 92.5 \\
+multivariate\_t3 & permute\_k2\_sparse20 & 15.0 & 40.0 & 7.5 & 42.5 & 15.0 & 30.0 & 30.0 & 32.5 \\
+multivariate\_t3 & permute\_k5 & 15.0 & 36.0 & 18.0 & 36.0 & 32.0 & 32.0 & 58.0 & 59.0 \\
+multivariate\_t3 & scale\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 10.0 & 7.5 & 100.0 & 100.0 & 100.0 \\
+multivariate\_t3 & scale\_0.5\_k2\_sparse20 & 15.0 & 12.5 & 25.0 & 12.5 & 7.5 & 20.0 & 20.0 & 17.5 \\
+multivariate\_t3 & scale\_2\_k2 & 15.0 & 97.5 & 100.0 & 10.0 & 7.5 & 97.5 & 97.5 & 100.0 \\
+\midrule
+real\_heldout & mean\_0.2\_k2 & 15.0 & 100.0 & 100.0 & 15.0 & 12.5 & 100.0 & 100.0 & 100.0 \\
+real\_heldout & mean\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 15.0 & 12.5 & 100.0 & 100.0 & 100.0 \\
+real\_heldout & mean\_0.5\_k2\_sparse20 & 15.0 & 57.5 & 100.0 & 57.5 & 15.0 & 92.5 & 95.0 & 87.5 \\
+real\_heldout & mean\_0.5\_k2\_sparse5 & 15.0 & 40.0 & 32.5 & 42.5 & 15.0 & 35.0 & 35.0 & 47.5 \\
+real\_heldout & paircorr\_0.3\_k2 & 15.0 & 55.0 & 15.0 & 55.0 & 30.0 & 55.0 & 55.0 & 57.5 \\
+real\_heldout & paircorr\_0.8\_k2 & 15.0 & 60.0 & 15.0 & 60.0 & 25.0 & 60.0 & 60.0 & 60.0 \\
+real\_heldout & permute\_k1 & 15.0 & 100.0 & 5.0 & 100.0 & 60.0 & 100.0 & 100.0 & 100.0 \\
+real\_heldout & permute\_k2 & 15.0 & 65.0 & 15.0 & 65.0 & 37.5 & 57.5 & 95.0 & 97.5 \\
+real\_heldout & permute\_k2\_sparse20 & 15.0 & 62.5 & 15.0 & 62.5 & 22.5 & 57.5 & 60.0 & 62.5 \\
+real\_heldout & permute\_k5 & 15.0 & 31.0 & 16.0 & 31.0 & 26.0 & 29.0 & 60.0 & 60.0 \\
+real\_heldout & scale\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 15.0 & 12.5 & 100.0 & 100.0 & 100.0 \\
+real\_heldout & scale\_0.5\_k2\_sparse20 & 15.0 & 60.0 & 97.5 & 55.0 & 20.0 & 85.0 & 85.0 & 85.0 \\
+real\_heldout & scale\_2\_k2 & 15.0 & 100.0 & 100.0 & 15.0 & 12.5 & 100.0 & 100.0 & 100.0 \\
+\midrule
+real\_tuesday & mean\_0.2\_k2 & 15.0 & 100.0 & 100.0 & 17.5 & 10.0 & 100.0 & 100.0 & 100.0 \\
+real\_tuesday & mean\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 17.5 & 10.0 & 100.0 & 100.0 & 100.0 \\
+real\_tuesday & mean\_0.5\_k2\_sparse20 & 15.0 & 60.0 & 100.0 & 55.0 & 20.0 & 95.0 & 95.0 & 95.0 \\
+real\_tuesday & mean\_0.5\_k2\_sparse5 & 15.0 & 42.5 & 55.0 & 40.0 & 15.0 & 57.5 & 57.5 & 60.0 \\
+real\_tuesday & paircorr\_0.3\_k2 & 15.0 & 55.0 & 27.5 & 55.0 & 32.5 & 55.0 & 55.0 & 57.5 \\
+real\_tuesday & paircorr\_0.8\_k2 & 15.0 & 65.0 & 27.5 & 65.0 & 30.0 & 65.0 & 65.0 & 62.5 \\
+real\_tuesday & permute\_k1 & 15.0 & 100.0 & 20.0 & 100.0 & 55.0 & 100.0 & 100.0 & 100.0 \\
+real\_tuesday & permute\_k2 & 15.0 & 65.0 & 27.5 & 65.0 & 40.0 & 57.5 & 95.0 & 92.5 \\
+real\_tuesday & permute\_k2\_sparse20 & 15.0 & 60.0 & 27.5 & 60.0 & 22.5 & 50.0 & 52.5 & 60.0 \\
+real\_tuesday & permute\_k5 & 15.0 & 34.0 & 19.0 & 34.0 & 24.0 & 29.0 & 58.0 & 60.0 \\
+real\_tuesday & scale\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 17.5 & 10.0 & 100.0 & 100.0 & 100.0 \\
+real\_tuesday & scale\_0.5\_k2\_sparse20 & 15.0 & 67.5 & 100.0 & 55.0 & 15.0 & 90.0 & 90.0 & 90.0 \\
+real\_tuesday & scale\_2\_k2 & 15.0 & 100.0 & 100.0 & 17.5 & 10.0 & 100.0 & 100.0 & 100.0 \\
+\midrule
+zero\_inflated\_tied & mean\_0.2\_k2 & 15.0 & 100.0 & 100.0 & 12.5 & 12.5 & 100.0 & 100.0 & 100.0 \\
+zero\_inflated\_tied & mean\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 12.5 & 12.5 & 100.0 & 100.0 & 100.0 \\
+zero\_inflated\_tied & mean\_0.5\_k2\_sparse20 & 15.0 & 100.0 & 100.0 & 75.0 & 12.5 & 100.0 & 100.0 & 100.0 \\
+zero\_inflated\_tied & mean\_0.5\_k2\_sparse5 & 15.0 & 17.5 & 47.5 & 17.5 & 12.5 & 32.5 & 32.5 & 35.0 \\
+zero\_inflated\_tied & paircorr\_0.3\_k2 & 15.0 & 72.5 & 20.0 & 75.0 & 20.0 & 67.5 & 67.5 & 60.0 \\
+zero\_inflated\_tied & paircorr\_0.8\_k2 & 15.0 & 100.0 & 20.0 & 100.0 & 45.0 & 100.0 & 100.0 & 100.0 \\
+zero\_inflated\_tied & permute\_k1 & 15.0 & 25.0 & 25.0 & 25.0 & 20.0 & 30.0 & 30.0 & 5.0 \\
+zero\_inflated\_tied & permute\_k2 & 15.0 & 40.0 & 20.0 & 40.0 & 25.0 & 32.5 & 32.5 & 22.5 \\
+zero\_inflated\_tied & permute\_k2\_sparse20 & 15.0 & 12.5 & 20.0 & 15.0 & 15.0 & 10.0 & 10.0 & 12.5 \\
+zero\_inflated\_tied & permute\_k5 & 15.0 & 26.0 & 20.0 & 25.0 & 21.0 & 24.0 & 24.0 & 17.0 \\
+zero\_inflated\_tied & scale\_0.5\_k2 & 15.0 & 100.0 & 100.0 & 12.5 & 12.5 & 100.0 & 100.0 & 100.0 \\
+zero\_inflated\_tied & scale\_0.5\_k2\_sparse20 & 15.0 & 97.5 & 100.0 & 22.5 & 15.0 & 97.5 & 97.5 & 97.5 \\
+zero\_inflated\_tied & scale\_2\_k2 & 15.0 & 100.0 & 100.0 & 12.5 & 12.5 & 100.0 & 100.0 & 100.0 \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+\begin{table*}[!tp]
+\centering
+\caption{Paired Recall@3 differences in percentage points (peeling minus baseline) on the same 20 seeds, one row per condition--population cell; $^{*}$ marks Holm-adjusted $p < 0.05$ within each cell across the 9 baselines (Wilcoxon signed-rank, or a sign test when $n < 10$). Positive is better for peeling. Cop = copula asymptotic, Dec = decomposed asymptotic, Bonf = decomposed ($\alpha/2$), KS = marginal KS pathway, KS$+$Pear = KS plus raw Pearson, Pear = raw Pearson relational, Max = calibrated max-edge without peeling, Sep$_\alpha$ = peeling without $\alpha$ split, Rank = peeling on rank-copula statistic. Win/loss/tie counts and raw $p$-values are in \textup{\texttt{summary.json}}.}
+\label{tab:paired-tests}
+\scriptsize
+\renewcommand{\arraystretch}{0.86}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrrrrr}
+\toprule
+Cell & \multicolumn{9}{c}{$\Delta$ Recall@3 vs each baseline} \\
+ & Cop & Dec & Bonf & KS & KS$+$Pear & Pear & Max & Sep$_\alpha$ & Rank \\
+\midrule
+\texttt{gaussian}:mean\_0.2\_k2 & $+$45.0$^{*}$ & $+$12.5 & $+$12.5 & $-$5.0 & $+$10.0 & $+$42.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:mean\_0.5\_k2 & $+$77.5$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & $+$75.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:mean\_0.5\_k2\_sparse20 & 0.0 & $-$2.5 & $-$2.5 & $+$2.5 & $+$7.5 & $+$7.5 & 0.0 & 0.0 & $-$5.0 \\
+\texttt{gaussian}:mean\_0.5\_k2\_sparse5 & $-$5.0 & $-$5.0 & $-$5.0 & $+$5.0 & $-$2.5 & $-$2.5 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{gaussian}:paircorr\_0.3\_k2 & $-$2.5 & $-$2.5 & $-$2.5 & $+$50.0$^{*}$ & $-$2.5 & $-$2.5 & 0.0 & 0.0 & $+$7.5 \\
+\texttt{gaussian}:paircorr\_0.8\_k2 & 0.0 & 0.0 & 0.0 & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:permute\_k1 & 0.0 & 0.0 & 0.0 & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:permute\_k2 & $+$32.5$^{*}$ & $+$32.5$^{*}$ & $+$32.5$^{*}$ & $+$77.5$^{*}$ & $+$42.5$^{*}$ & $+$42.5$^{*}$ & $+$40.0$^{*}$ & $-$2.5 & $+$7.5 \\
+\texttt{gaussian}:permute\_k2\_sparse20 & $-$10.0 & 0.0 & 0.0 & $+$20.0 & $+$5.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:permute\_k5 & $+$27.0$^{*}$ & $+$27.0$^{*}$ & $+$27.0$^{*}$ & $+$48.0$^{*}$ & $+$33.0$^{*}$ & $+$33.0$^{*}$ & $+$35.0$^{*}$ & 0.0 & $+$2.0 \\
+\texttt{gaussian}:scale\_0.5\_k2 & $+$77.5$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & $+$75.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{gaussian}:scale\_0.5\_k2\_sparse20 & $+$12.5 & $+$5.0 & $+$5.0 & $+$7.5 & $+$10.0 & $+$12.5 & 0.0 & 0.0 & $+$5.0 \\
+\texttt{gaussian}:scale\_2\_k2 & $+$77.5$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & $+$75.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\midrule
+\texttt{multivariate\_t3}:mean\_0.2\_k2 & $+$45.0$^{*}$ & $+$15.0 & $+$15.0 & $-$15.0 & $+$47.5$^{*}$ & $+$47.5$^{*}$ & 0.0 & 0.0 & $-$5.0 \\
+\texttt{multivariate\_t3}:mean\_0.5\_k2 & $+$90.0$^{*}$ & $+$7.5 & $+$7.5 & 0.0 & $+$67.5$^{*}$ & $+$92.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{multivariate\_t3}:mean\_0.5\_k2\_sparse20 & $+$7.5 & $+$5.0 & $+$5.0 & $-$12.5 & $+$12.5 & $+$12.5 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{multivariate\_t3}:mean\_0.5\_k2\_sparse5 & $-$7.5 & $-$7.5 & $-$7.5 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & $-$10.0 \\
+\texttt{multivariate\_t3}:paircorr\_0.3\_k2 & 0.0 & 0.0 & 0.0 & $+$52.5$^{*}$ & $+$22.5 & $+$22.5 & 0.0 & 0.0 & 0.0 \\
+\texttt{multivariate\_t3}:paircorr\_0.8\_k2 & 0.0 & 0.0 & 0.0 & $+$92.5$^{*}$ & $+$22.5 & $+$22.5 & 0.0 & $+$2.5 & 0.0 \\
+\texttt{multivariate\_t3}:permute\_k1 & 0.0 & 0.0 & 0.0 & $+$100.0$^{*}$ & $+$35.0 & $+$35.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{multivariate\_t3}:permute\_k2 & $+$22.5$^{*}$ & $+$22.5$^{*}$ & $+$22.5$^{*}$ & $+$85.0$^{*}$ & $+$47.5$^{*}$ & $+$47.5$^{*}$ & $+$27.5$^{*}$ & 0.0 & 0.0 \\
+\texttt{multivariate\_t3}:permute\_k2\_sparse20 & $-$12.5 & $-$10.0 & $-$10.0 & $+$22.5 & $+$15.0 & $+$15.0 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{multivariate\_t3}:permute\_k5 & $+$22.0$^{*}$ & $+$22.0$^{*}$ & $+$22.0$^{*}$ & $+$40.0$^{*}$ & $+$26.0$^{*}$ & $+$26.0$^{*}$ & $+$26.0$^{*}$ & $-$1.0 & $-$1.0 \\
+\texttt{multivariate\_t3}:scale\_0.5\_k2 & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 & $+$80.0$^{*}$ & $+$92.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{multivariate\_t3}:scale\_0.5\_k2\_sparse20 & $+$7.5 & $+$7.5 & $+$7.5 & $-$5.0 & $+$12.5 & $+$12.5 & 0.0 & 0.0 & $+$2.5 \\
+\texttt{multivariate\_t3}:scale\_2\_k2 & $+$87.5$^{*}$ & 0.0 & 0.0 & $-$2.5 & $+$80.0$^{*}$ & $+$90.0$^{*}$ & 0.0 & $-$2.5 & $-$2.5 \\
+\midrule
+\texttt{real\_heldout}:mean\_0.2\_k2 & $+$85.0$^{*}$ & 0.0 & 0.0 & 0.0 & $+$55.0$^{*}$ & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:mean\_0.5\_k2 & $+$85.0$^{*}$ & 0.0 & 0.0 & 0.0 & $+$50.0$^{*}$ & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:mean\_0.5\_k2\_sparse20 & $+$37.5$^{*}$ & $+$37.5$^{*}$ & $+$37.5$^{*}$ & $-$5.0 & $+$80.0$^{*}$ & $+$80.0$^{*}$ & $+$2.5 & 0.0 & $+$7.5 \\
+\texttt{real\_heldout}:mean\_0.5\_k2\_sparse5 & $-$7.5 & $-$5.0 & $-$5.0 & $+$2.5 & $+$20.0 & $+$20.0 & 0.0 & 0.0 & $-$12.5 \\
+\texttt{real\_heldout}:paircorr\_0.3\_k2 & 0.0 & 0.0 & 0.0 & $+$40.0$^{*}$ & $+$25.0$^{*}$ & $+$25.0$^{*}$ & 0.0 & 0.0 & $-$2.5 \\
+\texttt{real\_heldout}:paircorr\_0.8\_k2 & 0.0 & 0.0 & 0.0 & $+$45.0$^{*}$ & $+$35.0$^{*}$ & $+$35.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:permute\_k1 & 0.0 & 0.0 & 0.0 & $+$95.0$^{*}$ & $+$40.0$^{*}$ & $+$40.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:permute\_k2 & $+$30.0$^{*}$ & $+$30.0$^{*}$ & $+$30.0$^{*}$ & $+$80.0$^{*}$ & $+$57.5$^{*}$ & $+$57.5$^{*}$ & $+$37.5$^{*}$ & $-$2.5 & $-$2.5 \\
+\texttt{real\_heldout}:permute\_k2\_sparse20 & $-$2.5 & $-$2.5 & $-$2.5 & $+$45.0$^{*}$ & $+$37.5$^{*}$ & $+$37.5$^{*}$ & $+$2.5 & 0.0 & $-$2.5 \\
+\texttt{real\_heldout}:permute\_k5 & $+$29.0$^{*}$ & $+$29.0$^{*}$ & $+$29.0$^{*}$ & $+$44.0$^{*}$ & $+$34.0$^{*}$ & $+$34.0$^{*}$ & $+$31.0$^{*}$ & 0.0 & 0.0 \\
+\texttt{real\_heldout}:scale\_0.5\_k2 & $+$85.0$^{*}$ & 0.0 & 0.0 & 0.0 & $+$55.0$^{*}$ & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:scale\_0.5\_k2\_sparse20 & $+$30.0$^{*}$ & $+$25.0$^{*}$ & $+$25.0$^{*}$ & $-$12.5 & $+$65.0$^{*}$ & $+$65.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_heldout}:scale\_2\_k2 & $+$85.0$^{*}$ & 0.0 & 0.0 & 0.0 & $+$55.0$^{*}$ & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\midrule
+\texttt{real\_tuesday}:mean\_0.2\_k2 & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$47.5$^{*}$ & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_tuesday}:mean\_0.5\_k2 & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$42.5$^{*}$ & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_tuesday}:mean\_0.5\_k2\_sparse20 & $+$40.0$^{*}$ & $+$35.0$^{*}$ & $+$35.0$^{*}$ & $-$5.0 & $+$75.0$^{*}$ & $+$75.0$^{*}$ & 0.0 & $-$2.5 & 0.0 \\
+\texttt{real\_tuesday}:mean\_0.5\_k2\_sparse5 & $+$17.5 & $+$15.0 & $+$15.0 & $+$2.5 & $+$42.5$^{*}$ & $+$42.5$^{*}$ & 0.0 & 0.0 & $-$2.5 \\
+\texttt{real\_tuesday}:paircorr\_0.3\_k2 & 0.0 & 0.0 & 0.0 & $+$27.5$^{*}$ & $+$22.5 & $+$22.5 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{real\_tuesday}:paircorr\_0.8\_k2 & 0.0 & 0.0 & 0.0 & $+$37.5$^{*}$ & $+$35.0$^{*}$ & $+$35.0$^{*}$ & 0.0 & 0.0 & $+$2.5 \\
+\texttt{real\_tuesday}:permute\_k1 & 0.0 & 0.0 & 0.0 & $+$80.0$^{*}$ & $+$45.0$^{*}$ & $+$45.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_tuesday}:permute\_k2 & $+$30.0$^{*}$ & $+$30.0$^{*}$ & $+$30.0$^{*}$ & $+$67.5$^{*}$ & $+$55.0$^{*}$ & $+$55.0$^{*}$ & $+$37.5$^{*}$ & $-$2.5 & $+$2.5 \\
+\texttt{real\_tuesday}:permute\_k2\_sparse20 & $-$7.5 & $-$7.5 & $-$7.5 & $+$25.0 & $+$30.0 & $+$30.0 & $+$2.5 & 0.0 & $-$7.5 \\
+\texttt{real\_tuesday}:permute\_k5 & $+$24.0$^{*}$ & $+$24.0$^{*}$ & $+$24.0$^{*}$ & $+$39.0$^{*}$ & $+$34.0$^{*}$ & $+$34.0$^{*}$ & $+$29.0$^{*}$ & 0.0 & $-$2.0 \\
+\texttt{real\_tuesday}:scale\_0.5\_k2 & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$50.0$^{*}$ & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_tuesday}:scale\_0.5\_k2\_sparse20 & $+$35.0$^{*}$ & $+$22.5$^{*}$ & $+$22.5$^{*}$ & $-$10.0 & $+$75.0$^{*}$ & $+$75.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{real\_tuesday}:scale\_2\_k2 & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$50.0$^{*}$ & $+$90.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\midrule
+\texttt{zero\_inflated\_tied}:mean\_0.2\_k2 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$2.5 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:mean\_0.5\_k2 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 & 0.0 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:mean\_0.5\_k2\_sparse20 & $+$25.0 & 0.0 & 0.0 & 0.0 & $+$75.0$^{*}$ & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:mean\_0.5\_k2\_sparse5 & $+$15.0 & $+$15.0 & $+$15.0 & $-$15.0 & $+$20.0 & $+$20.0 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{zero\_inflated\_tied}:paircorr\_0.3\_k2 & $-$7.5 & $-$5.0 & $-$5.0 & $+$47.5$^{*}$ & $+$47.5$^{*}$ & $+$47.5$^{*}$ & 0.0 & 0.0 & $+$7.5 \\
+\texttt{zero\_inflated\_tied}:paircorr\_0.8\_k2 & 0.0 & 0.0 & 0.0 & $+$80.0$^{*}$ & $+$55.0$^{*}$ & $+$55.0$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:permute\_k1 & $+$5.0 & $+$5.0 & $+$5.0 & $+$5.0 & $+$10.0 & $+$10.0 & 0.0 & 0.0 & $+$25.0 \\
+\texttt{zero\_inflated\_tied}:permute\_k2 & $-$7.5 & $-$7.5 & $-$7.5 & $+$12.5 & $+$7.5 & $+$7.5 & 0.0 & 0.0 & $+$10.0 \\
+\texttt{zero\_inflated\_tied}:permute\_k2\_sparse20 & $-$5.0 & $-$2.5 & $-$2.5 & $-$10.0 & $-$5.0 & $-$5.0 & 0.0 & 0.0 & $-$2.5 \\
+\texttt{zero\_inflated\_tied}:permute\_k5 & $-$1.0 & $-$2.0 & $-$2.0 & $+$4.0 & $+$3.0 & $+$3.0 & 0.0 & 0.0 & $+$7.0 \\
+\texttt{zero\_inflated\_tied}:scale\_0.5\_k2 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$2.5 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:scale\_0.5\_k2\_sparse20 & $+$75.0$^{*}$ & 0.0 & 0.0 & $-$2.5 & $+$77.5$^{*}$ & $+$82.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\texttt{zero\_inflated\_tied}:scale\_2\_k2 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 & $+$2.5 & $+$87.5$^{*}$ & 0.0 & 0.0 & 0.0 \\
+\bottomrule
+\end{tabular*}
+\end{table*}

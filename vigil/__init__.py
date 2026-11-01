@@ -25,6 +25,7 @@ Quick Start
 """
 
 from vigil.attribution import DriftAttributor
+from vigil.calibration import CalibratedScores, compute_calibrated_scores
 from vigil.core.autoencoder import Autoencoder
 from vigil.core.drift_detector import DriftDetector
 from vigil.core.novelty_detector import NoveltyDetector
@@ -39,8 +40,10 @@ __paper__   = "arXiv:2605.29834"
 
 __all__ = [
     "Autoencoder",
+    "CalibratedScores",
     "DriftAttributor",
     "DriftDetector",
     "NoveltyDetector",
     "Vigil",
+    "compute_calibrated_scores",
 ]

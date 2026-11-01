@@ -1,0 +1,48 @@
+{
+  "d": 20,
+  "n": 400,
+  "n_permutations": 199,
+  "seed": 0,
+  "results": {
+    "gaussian": {
+      "median_seconds": 0.3845,
+      "min": 0.3783,
+      "max": 0.3986,
+      "calls": 5
+    },
+    "zero_inflated_tied": {
+      "median_seconds": 0.3004,
+      "min": 0.293,
+      "max": 0.3286,
+      "calls": 5
+    },
+    "multivariate_t3": {
+      "median_seconds": 0.3834,
+      "min": 0.3758,
+      "max": 0.3851,
+      "calls": 5
+    }
+  },
+  "asymptotic_decomposed_ms": 7.62,
+  "asymptotic_calls": 5,
+  "provenance": {
+    "git_commit": "40818505e5b24ba10796093d2c3397a9839182c7",
+    "git_dirty": true,
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "total_ram_bytes": 16831926272,
+    "dependency_versions": {
+      "numpy": "2.4.6",
+      "pandas": "3.1.0",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.9.1",
+      "torch": "2.14.1",
+      "river": "0.26.1",
+      "pyyaml": "6.0.3"
+    },
+    "dataset_checksums": {},
+    "captured_at_utc": "2026-10-24T15:04:10.177856+00:00",
+    "source_tree_hash": "0b441222e86e0c9010228b6d1a423c18f2e11442e4cda2c7e35f9b764775c4a7"
+  }
+}

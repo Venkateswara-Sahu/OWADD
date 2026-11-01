@@ -1,147 +1,334 @@
 """
-Figure Generation for arXiv Paper
-===================================
-Generates publication-quality matplotlib figures for the paper:
-  Figure 1 : Top-5 drifted features bar chart (from benchmark results)
-  Figure 2 : Precision / Recall / F1 comparison bar chart (Vigil vs baselines)
-  Figure 3 : Per-attack-class detection rate heatmap
-
-Run AFTER paper/baselines/run_baselines.py — paste that script's numbers
-into RESULTS dict below before running.
+Figure Generation for arXiv / IEEEtran Paper
+=============================================
+Generates publication-quality vector PDF and PNG figures for paper/main.tex:
+  Figure 1 (fig1_top_features.pdf): Synthetic Attribution Benchmark (mean Recall@3,
+    20 seeds)
+  Figure 2 (fig2_comparison.pdf):   Real-Data CICIDS2017 Validation & Held-Out Test
+    Attribution Benchmark
+  Figure 3 (fig3_per_class.pdf):    Decomposed Pathway Ablation (Marginal vs
+    Relational vs Combined)
+  Figure 4 (fig4_calibration_power.pdf): Permutation-calibrated pathway -- null
+    calibration and detection power
 
 Usage:
     python paper/figures/generate_figures.py
 """
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import numpy as np
+import json
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
 FIG_DIR = Path(__file__).parent
+POWER_JSON = (
+    Path(__file__).parents[2]
+    / "artifacts"
+    / "runs"
+    / "calibrated-power-v1"
+    / "power.json"
+)
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Colour palette ─────────────────────────────────────────────────────────────
-BLUE   = "#1a73e8"
-ORANGE = "#f4a62a"
-GREEN  = "#34a853"
-RED    = "#ea4335"
-GREY   = "#9aa0a6"
+BLUE = "#1a73e8"
+RED = "#d93025"
+GREEN = "#1e8e3e"
+ORANGE = "#f29900"
 
-plt.rcParams.update({
-    "font.family"     : "serif",
-    "font.size"       : 10,
-    "axes.titlesize"  : 11,
-    "axes.labelsize"  : 10,
-    "legend.fontsize" : 9,
-    "figure.dpi"      : 150,
-})
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.size": 8.0,
+        "axes.titlesize": 9.0,
+        "axes.labelsize": 8.0,
+        "xtick.labelsize": 7.0,
+        "ytick.labelsize": 7.5,
+        "legend.fontsize": 7.0,
+        "figure.dpi": 300,
+    }
+)
 
-# =============================================================================
-# Figure 1 — Top-5 drifted features (from Vigil benchmark)
-# =============================================================================
-# From benchmark_nsl_kdd.py output (real measured values):
-TOP_FEATURES = {
-    "root\\_shell"             : 18.3,
-    "protocol\\_type\\_icmp"   : 7.3,
-    "srv\\_diff\\_host\\_rate"  : 6.5,
-    "dst\\_host\\_srv\\_count"  : 6.3,
-    "service\\_private"        : 5.8,
-}
 
-fig, ax = plt.subplots(figsize=(5.5, 2.8))
-names  = list(TOP_FEATURES.keys())
-shares = list(TOP_FEATURES.values())
-bars   = ax.barh(names[::-1], shares[::-1], color=BLUE, height=0.55,
-                 edgecolor="white", linewidth=0.5)
-for bar, val in zip(bars, shares[::-1]):
-    ax.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height()/2,
-            f"{val:.1f}%", va="center", fontsize=9)
-ax.set_xlabel("Contribution to Drift Attribution (%)")
-ax.set_title("Top-5 Network Features by Drift Attribution\n(NSL-KDD, 50-chunk stream)")
-ax.set_xlim(0, 20)
-ax.spines[["top","right"]].set_visible(False)
-plt.tight_layout()
-fig.savefig(FIG_DIR / "fig1_top_features.pdf", bbox_inches="tight")
-fig.savefig(FIG_DIR / "fig1_top_features.png", bbox_inches="tight")
-print("Saved fig1_top_features.pdf/png")
+def make_fig1() -> None:
+    labels = [
+        "Mean\n+0.5\n(Marg.)",
+        "Scale\nx0.5\n(Marg.)",
+        "Corr\n0.8\n(Indep.)",
+        "Dep\n+0.6\n(n=200)",
+        "Dep\n+0.6\n(n=800)",
+    ]
+    dda = [100.0, 100.0, 100.0, 100.0, 100.0]
+    ae_abs = [32.5, 92.5, 20.0, 75.0, 97.5]
+    ks = [100.0, 100.0, 20.0, 2.5, 15.0]
+    corr = [7.5, 10.0, 100.0, 100.0, 100.0]
 
-# =============================================================================
-# Figure 2 — Method comparison bar chart
-# =============================================================================
-# From run_baselines.py (real measured values with correct methodology):
-METHODS   = ["Vigil\n(Ours)", "ADWIN", "KSWIN", "Page\nHinkley"]
-PRECISION = [0.938, 1.000, 1.000, 1.000]
-RECALL    = [0.333, 0.044, 0.022, 0.044]
-F1        = [0.492, 0.085, 0.043, 0.085]
+    x = np.arange(len(labels)) * 1.15
+    w = 0.20
 
-x     = np.arange(len(METHODS))
-width = 0.25
+    fig, ax = plt.subplots(figsize=(3.5, 2.4))
+    ax.bar(
+        x - 1.5 * w,
+        dda,
+        w,
+        label="Decomposed Copula-KS (Ours)",
+        color=BLUE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x - 0.5 * w,
+        ae_abs,
+        w,
+        label="Trained AE (|Delta MSE|)",
+        color=RED,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x + 0.5 * w,
+        ks,
+        w,
+        label="Univariate KS",
+        color=GREEN,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x + 1.5 * w,
+        corr,
+        w,
+        label="Pearson Corr Shift",
+        color=ORANGE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
 
-fig, ax = plt.subplots(figsize=(6, 3.5))
-b1 = ax.bar(x - width, PRECISION, width, label="Precision", color=BLUE,   edgecolor="white")
-b2 = ax.bar(x,         RECALL,    width, label="Recall",    color=ORANGE, edgecolor="white")
-b3 = ax.bar(x + width, F1,        width, label="F1",        color=GREEN,  edgecolor="white")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean Recall@3 (%) [20 Seeds]")
+    ax.set_ylim(0, 108)
+    ax.grid(axis="y", linestyle=":", alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.03),
+        ncol=2,
+        frameon=False,
+        columnspacing=0.8,
+        handletextpad=0.4,
+    )
+    plt.tight_layout()
+    fig.savefig(FIG_DIR / "fig1_top_features.pdf", bbox_inches="tight", pad_inches=0.03)
+    fig.savefig(FIG_DIR / "fig1_top_features.png", bbox_inches="tight", pad_inches=0.03)
+    plt.close(fig)
 
-# Annotate Vigil bars
-for b, val in zip([b1[0], b2[0], b3[0]], [PRECISION[0], RECALL[0], F1[0]]):
-    ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.01,
-            f"{val:.0%}", ha="center", va="bottom", fontsize=8, fontweight="bold")
 
-ax.set_xticks(x)
-ax.set_xticklabels(METHODS)
-ax.set_ylabel("Score")
-ax.set_ylim(0, 1.15)
-ax.set_title("Drift Detection: Vigil vs. Baselines (NSL-KDD)")
-ax.legend(loc="upper right", framealpha=0.9)
-ax.spines[["top","right"]].set_visible(False)
-# Highlight Vigil column
-ax.axvspan(-0.45, 0.45, alpha=0.07, color=BLUE, zorder=0)
-plt.tight_layout()
-fig.savefig(FIG_DIR / "fig2_comparison.pdf", bbox_inches="tight")
-fig.savefig(FIG_DIR / "fig2_comparison.png", bbox_inches="tight")
-print("Saved fig2_comparison.pdf/png  [NOTE: fill baseline numbers after run_baselines.py]")
+def make_fig2() -> None:
+    labels = [
+        "Mean\n+0.5\n(Test)",
+        "Mean\n+2.0\n(Test)",
+        "Scale\nx0.5\n(Test)",
+        "Perm.\n(Val)",
+        "Perm.\n(Test)",
+    ]
+    dda = [100.0, 100.0, 100.0, 65.0, 55.0]
+    ae_abs = [7.5, 15.0, 5.0, 27.5, 17.5]
+    ks = [100.0, 100.0, 100.0, 15.0, 17.5]
+    corr = [17.5, 17.5, 17.5, 65.0, 67.5]
 
-# =============================================================================
-# Figure 3 — Per-attack-class detection rate heatmap
-# =============================================================================
-# From benchmark_nsl_kdd.py (real per-class results)
-# Excluded: 'normal' dominant (22 chunks, 27.3%) — these are drift-phase chunks
-# where normal traffic is temporarily dominant; not meaningful as attack classes.
-ATTACK_CLASSES  = ["back",   "ftp_write", "ipsweep", "land",  "loadmodule",
-                   "multihop", "neptune",  "nmap",    "buffer_overflow"]
-DETECTION_RATES = [0.600,    0.250,       0.000,     0.000,   0.000,
-                   0.600,    0.000,       0.750,     0.000]
-AVG_SEVERITY    = [0.48,     0.12,        0.00,      0.00,    0.00,
-                   0.23,     0.00,        0.38,      0.07]
+    x = np.arange(len(labels)) * 1.15
+    w = 0.20
 
-fig, ax = plt.subplots(figsize=(6, 3.2))
-colors = [BLUE if r > 0 else GREY for r in DETECTION_RATES]
-bars   = ax.bar(ATTACK_CLASSES, DETECTION_RATES, color=colors,
-                edgecolor="white", linewidth=0.5)
-for bar, rate, sev in zip(bars, DETECTION_RATES, AVG_SEVERITY):
-    if rate > 0:
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                f"{rate:.0%}", ha="center", va="bottom", fontsize=8)
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height()/2,
-                f"sev\n{sev:.2f}", ha="center", va="center",
-                fontsize=7, color="white", fontweight="bold")
+    fig, ax = plt.subplots(figsize=(3.5, 2.4))
+    ax.bar(
+        x - 1.5 * w,
+        dda,
+        w,
+        label="Decomposed Copula-KS (Ours)",
+        color=BLUE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x - 0.5 * w,
+        ae_abs,
+        w,
+        label="Trained AE (|Delta MSE|)",
+        color=RED,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x + 0.5 * w,
+        ks,
+        w,
+        label="Univariate KS",
+        color=GREEN,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x + 1.5 * w,
+        corr,
+        w,
+        label="Pearson Corr Shift",
+        color=ORANGE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
 
-ax.set_ylabel("Detection Rate")
-ax.set_ylim(0, 1.2)
-ax.set_title("Per-Attack-Class Detection Rate (Vigil, NSL-KDD)")
-ax.tick_params(axis="x", rotation=30)
-ax.spines[["top","right"]].set_visible(False)
-detected_patch = mpatches.Patch(color=BLUE, label="Detected")
-missed_patch   = mpatches.Patch(color=GREY, label="Missed (subtle attacks)")
-ax.legend(handles=[detected_patch, missed_patch], loc="upper right", fontsize=8)
-plt.tight_layout()
-fig.savefig(FIG_DIR / "fig3_per_class.pdf", bbox_inches="tight")
-fig.savefig(FIG_DIR / "fig3_per_class.png", bbox_inches="tight")
-print("Saved fig3_per_class.pdf/png")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean Recall@3 (%) [CICIDS2017]")
+    ax.set_ylim(0, 108)
+    ax.grid(axis="y", linestyle=":", alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.03),
+        ncol=2,
+        frameon=False,
+        columnspacing=0.8,
+        handletextpad=0.4,
+    )
+    plt.tight_layout()
+    fig.savefig(FIG_DIR / "fig2_comparison.pdf", bbox_inches="tight", pad_inches=0.03)
+    fig.savefig(FIG_DIR / "fig2_comparison.png", bbox_inches="tight", pad_inches=0.03)
+    plt.close(fig)
 
-print("\nAll figures written to:", FIG_DIR)
-print("Next: update PRECISION/RECALL/F1 in fig2 with run_baselines.py output,")
-print("then re-run this script.")
+
+def make_fig3() -> None:
+    labels = [
+        "Syn\nMean\n+0.5",
+        "Syn\nCorr\n0.8",
+        "CICIDS\nMean\n+0.5",
+        "CICIDS\nScale\nx0.5",
+        "CICIDS\nPerm.\n(Val)",
+    ]
+    marg_only = [100.0, 17.5, 100.0, 100.0, 17.5]
+    rel_only = [7.5, 100.0, 12.5, 12.5, 65.0]
+    combined = [100.0, 100.0, 100.0, 100.0, 65.0]
+
+    x = np.arange(len(labels)) * 1.15
+    w = 0.25
+
+    fig, ax = plt.subplots(figsize=(3.5, 2.4))
+    ax.bar(
+        x - w,
+        marg_only,
+        w,
+        label="Marginal Only (-log10 p_KS)",
+        color=GREEN,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x,
+        rel_only,
+        w,
+        label="Relational Only (-log10 p_Copula)",
+        color=ORANGE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.bar(
+        x + w,
+        combined,
+        w,
+        label="Decomposed Copula-KS (Combined)",
+        color=BLUE,
+        edgecolor="white",
+        linewidth=0.4,
+    )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean Recall@3 (%) [20 Seeds]")
+    ax.set_ylim(0, 108)
+    ax.grid(axis="y", linestyle=":", alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.03),
+        ncol=1,
+        frameon=False,
+        handletextpad=0.4,
+    )
+    plt.tight_layout()
+    fig.savefig(FIG_DIR / "fig3_per_class.pdf", bbox_inches="tight", pad_inches=0.03)
+    fig.savefig(FIG_DIR / "fig3_per_class.png", bbox_inches="tight", pad_inches=0.03)
+    plt.close(fig)
+
+
+def make_fig4(power_json: Path | None = None) -> None:
+    """Dose-response detection curve from artifacts/runs/calibrated-power-v1."""
+    source = power_json or POWER_JSON
+    if not source.exists():
+        print(f"skip fig4: {source} not found (run experiments.calibrated_power)")
+        return
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    cells = payload["cells"].values()
+    by_cell = {(cell["fraction_rows"], cell["delta"]): cell for cell in cells}
+    fractions = sorted({key[0] for key in by_cell})
+    deltas = sorted({key[1] for key in by_cell})
+
+    fig, ax = plt.subplots(figsize=(3.5, 2.4))
+    styles = [(BLUE, "o"), (RED, "s")]
+    for delta, (color, marker) in zip(deltas, styles, strict=False):
+        rates = [
+            by_cell[(fraction, delta)]["detection"]["declared"] * 100.0
+            for fraction in fractions
+        ]
+        ax.plot(
+            [fraction * 100.0 for fraction in fractions],
+            rates,
+            marker=marker,
+            color=color,
+            linewidth=1.2,
+            markersize=4,
+            label=f"mean +{delta:.1f} SD, 2 of 20 features",
+        )
+    ax.axhline(5.0, color="#5f6368", linestyle=":", linewidth=0.9)
+    ax.annotate(
+        "nominal false-alarm rate (5%)",
+        xy=(fractions[0] * 100.0, 9.0),
+        fontsize=6,
+        color="#5f6368",
+    )
+    ax.set_xscale("log")
+    ax.set_xticks([fraction * 100.0 for fraction in fractions])
+    ax.set_xticklabels([f"{fraction * 100:.0f}%" for fraction in fractions])
+    ax.set_xlabel("Share of rows shifted")
+    ax.set_ylabel("Detection rate (%)")
+    ax.set_ylim(0, 105)
+    ax.grid(axis="y", linestyle=":", alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.03), frameon=False, fontsize=6)
+    plt.tight_layout()
+    fig.savefig(
+        FIG_DIR / "fig4_calibration_power.pdf", bbox_inches="tight", pad_inches=0.03
+    )
+    fig.savefig(
+        FIG_DIR / "fig4_calibration_power.png", bbox_inches="tight", pad_inches=0.03
+    )
+    plt.close(fig)
+
+
+def main() -> None:
+    make_fig1()
+    make_fig2()
+    make_fig3()
+    make_fig4()
+    print("Generated clean, non-overlapping figures in", FIG_DIR)
+
+
+if __name__ == "__main__":
+    main()

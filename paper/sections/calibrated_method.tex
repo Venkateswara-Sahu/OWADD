@@ -1,0 +1,65 @@
+% Permutation-calibrated attribution: method text only.
+% The experiment, tables and interpretation live in
+% sections/calibration_experiment.tex, which inputs sections/calibrated.tex.
+
+\section{Calibrated Attribution: Permutation Nulls and Edge Peeling}
+\label{sec:calibrated}
+
+The decomposed pathway of Section~\ref{sec:method} calibrates each feature with an
+\emph{asymptotic} null: a Bonferroni-corrected Kolmogorov--Smirnov $p$-value for the
+marginal family, and a Gaussian-copula Fisher-$z$ $p$-value for the relational family.
+That calibration rests on two assumptions that network telemetry routinely violates.
+First, the rank-normal transform enforces Gaussian marginals but not Gaussian
+\emph{dependence}: with ties and zero inflation the sampling distribution of the
+correlation difference is not the Fisher-$z$ law. Second, Bonferroni correction controls
+the family only if the per-feature $p$-values are valid; it says nothing about the joint
+dependence between features. Both failures push in the same direction, toward rejecting
+the null when nothing has changed.
+
+We therefore replace the null with a permutation null and re-derive the decision rule.
+
+\paragraph{Max-statistic calibration}
+Pool the reference and current windows into $X \in \mathbb{R}^{N \times d}$ with
+$N = n_{\text{ref}} + n_{\text{cur}}$. For $b = 1, \dots, B$, draw a permutation $\pi_b$
+of the pooled rows, split at $n_{\text{ref}}$, recompute every statistic, and retain the
+family maxima $D^{(b)}_{\max} = \max_j D_j^{(b)}$ and
+$z^{(b)}_{\max} = \max_{j < k} z^{(b)}_{jk}$. Adjusted $p$-values use the add-one
+estimator $p_j = (1 + \#\{b : D^{(b)}_{\max} \ge D_j\}) / (B + 1)$, and likewise for
+edges. This is valid for any dependence structure \emph{among the features}, any
+marginal distribution and any tie pattern, at the cost of a Monte-Carlo resolution
+floor of $1/(B+1)$ and one pass of $B$ permutations per query. Standard row permutation
+(\texttt{block\_size=1}) assumes that pooled rows are exchangeable within a window: on an
+autocorrelated stream, row-wise label swaps break serial dependence and make the null
+anti-conservative. Our implementation therefore also supports contiguous block
+permutations (\texttt{block\_size} $> 1$), which permute non-overlapping blocks of
+adjacent rows intact (evaluated for block sizes $10, 25, 50$ in
+Section~\ref{sec:calibration}, Table~\ref{tab:block-null}); when serial dependence spans
+longer than the block size, however, blocking only partially reduces over-rejection. The
+block-clustered intervals in Table~\ref{tab:real-null} provide the corresponding
+cluster-level uncertainty diagnostic on resampled blocks.
+
+\paragraph{Joint level without a joint null}
+The two families live on different scales, so a common maximum is not available. We
+instead test each family at $\alpha/2$: since each family controls its own family-wise
+error at $\alpha/2$, the union of their rejections is controlled at $\alpha$ by the union
+bound, with no independence assumption. This is the correction the asymptotic route
+lacked, and it is deliberately conservative --- the price of not modelling the joint
+distribution of a KS statistic and a correlation difference.
+
+\paragraph{Greedy edge peeling}
+Calibration alone fixes the decision, not the order. Ranking a feature by its single
+strongest calibrated edge leaves the permutation condition unresolved: both permuted
+features change their correlation \emph{with each other}, so each is a plausible
+explanation of the same edge. Peeling treats the significant edges as a graph and
+returns a greedy vertex cover: repeatedly select $\arg\max_j \sum_k w_{jk}^2$ over the
+significant-edge weights $w_{jk} = z_{jk} \mathbb{1}[p_{jk} \le \alpha/2]$, delete the
+selected vertex's edges, and stop when no significant edge remains. Features whose only
+changed correlation is to an already-selected feature rank after it, not alongside it.
+The peel order is a ranking device, not a causal claim: it explains which features carry
+the changed dependency structure, and the independence diagnostic
+$\max_{k \ne j} |R^{\text{ref}}_{jk}|$ records when a feature has no dependence to shift
+in the first place. The cover is greedy and therefore not guaranteed minimal, and ties in
+$\sum_k w_{jk}^2$ are broken by column index: when two features carry exactly the same
+significant-edge weight --- the permutation condition's own symmetry --- the order between
+them is arbitrary, though the adjusted $p$-values and the evidence are invariant to
+relabelling the features.

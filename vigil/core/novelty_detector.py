@@ -21,6 +21,7 @@ Algorithm 2 (from paper):
 """
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 import numpy as np
 from sklearn.neighbors import KernelDensity
@@ -44,6 +45,7 @@ class NoveltyResult:
     n_known : int
         Absolute count of known samples in this batch.
     """
+
     labels: np.ndarray
     density_scores: np.ndarray
     novelty_proportion: float
@@ -61,9 +63,13 @@ class NoveltyDetector:
 
     Parameters
     ----------
-    novelty_threshold : float
-        Density score threshold below which a sample is flagged as novel.
-        Paper uses 0.02. Default: 0.02.
+    novelty_threshold : float or None
+        Fixed density-score threshold below which a sample is flagged as novel.
+        ``None`` (the default) derives the threshold from
+        ``threshold_percentile`` of the training density scores, so roughly
+        ``threshold_percentile``% of in-distribution samples are flagged by
+        construction. A numeric value overrides the percentile rule; earlier
+        drafts used ``0.02`` as a fixed value.
     kde_bandwidth : str or float
         Bandwidth for the KDE model. 'scott' uses Scott's rule (automatic).
         Default: 'scott'.
@@ -77,12 +83,15 @@ class NoveltyDetector:
         threshold_percentile: float = 5.0,
         kde_bandwidth: str = "scott",
         kde_kernel: str = "gaussian",
+        upper_tail_only: bool = False,
     ):
         self._fixed_threshold = novelty_threshold  # None = auto from percentile
         self.threshold_percentile = threshold_percentile
         self.kde_bandwidth = kde_bandwidth
         self.kde_kernel = kde_kernel
+        self.upper_tail_only = upper_tail_only
         self.novelty_threshold: float = novelty_threshold or 0.0  # set in fit()
+        self._reference_median: float = 0.0
 
         self._kde: KernelDensity | None = None
         self._is_fitted: bool = False
@@ -105,9 +114,12 @@ class NoveltyDetector:
         """
         # KDE expects 2D input: reshape (n_samples,) -> (n_samples, 1)
         errors_2d = reference_errors.reshape(-1, 1)
+        self._reference_median = float(np.median(reference_errors))
 
+        # sklearn accepts ``"scott"``/``"silverman"`` as well as a float here;
+        # its stubs only declare the float form, hence the cast.
         self._kde = KernelDensity(
-            bandwidth=self.kde_bandwidth,
+            bandwidth=cast("Any", self.kde_bandwidth),
             kernel=self.kde_kernel,
         )
         self._kde.fit(errors_2d)
@@ -150,12 +162,21 @@ class NoveltyDetector:
 
         errors_2d = errors.reshape(-1, 1)
 
+        kde = self._kde
+        if kde is None:  # pragma: no cover - guarded by ``_is_fitted`` above
+            raise RuntimeError("NoveltyDetector has no fitted KDE model")
+
         # log_density → density (exponentiate to get actual probability density)
-        log_density_scores = self._kde.score_samples(errors_2d)
+        log_density_scores = kde.score_samples(errors_2d)
         density_scores = np.exp(log_density_scores)
 
         # Classify: above threshold = known (1), below = novel (0)
-        labels = (density_scores >= self.novelty_threshold).astype(int)
+        is_low_density = density_scores < self.novelty_threshold
+        if self.upper_tail_only:
+            is_novel = is_low_density & (errors > self._reference_median)
+        else:
+            is_novel = is_low_density
+        labels = (~is_novel).astype(int)
 
         n_novel = int(np.sum(labels == 0))
         n_known = int(np.sum(labels == 1))

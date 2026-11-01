@@ -65,7 +65,7 @@ Documentation = "https://venkateswara-sahu.github.io/OWADD/"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["vigil*", "experiments*"]
+include = ["vigil*", "experiments*", "data*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -86,3 +86,8 @@ ignore = [
     "PLR0917",  # Too many positional arguments — same reason
     "RUF002",   # Ambiguous Unicode in docstrings — cosmetic only
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Numeric literals in tests are the assertions themselves (dimensionality, nominal
+# threshold, permutation budget), so demanding named constants only obscures them.
+"tests/**" = ["PLR2004"]

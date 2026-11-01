@@ -1,4 +1,4 @@
-﻿"""
+"""
 Drift Detector Module
 =====================
 Implements the replicated T-Test based concept drift detection algorithm
@@ -78,6 +78,23 @@ class DriftDetector:
         Paper uses 0.3 (i.e., 30% of tests must be significant). Default: 0.3.
     alpha : float
         Significance level for each individual T-test. Default: 0.05.
+    alternative : str
+        Alternative hypothesis for Welch's T-test comparing batch errors vs
+        reference buffer errors: ``'two-sided'`` (legacy default) or
+        ``'greater'`` (tests specifically whether batch reconstruction error
+        increased).
+    reset_on_drift : bool
+        If True (legacy default), clears the reference buffer upon drift.
+        Note: if ``reset_on_drift=True`` and ``warm_start_min_samples`` is
+        larger than a single batch, subsequent batches would be skipped
+        unless ``warm_start_min_samples`` is satisfied.
+    warm_start_min_samples : int or None
+        Minimum number of samples required in the reference buffer before
+        running drift tests. If ``None``, defaults to ``buffer_size`` prior
+        to the first detection and ``sample_size`` after a post-drift reset
+        so the detector does not go blind for multiple chunks after drift.
+    seed : int or None
+        Optional random seed for deterministic T-test bootstrap subsampling.
     """
 
     def __init__(
@@ -87,16 +104,28 @@ class DriftDetector:
         sample_size: int = 30,
         drift_threshold: float = 0.3,
         alpha: float = 0.05,
+        alternative: str = "two-sided",
+        reset_on_drift: bool = True,
+        warm_start_min_samples: int | None = None,
+        seed: int | None = None,
     ):
+        if alternative not in ("two-sided", "greater"):
+            raise ValueError("alternative must be 'two-sided' or 'greater'")
         self.buffer_size = buffer_size
         self.n_replications = n_replications
         self.sample_size = sample_size
         self.drift_threshold = drift_threshold
         self.alpha = alpha
+        self.alternative = alternative
+        self.reset_on_drift = reset_on_drift
+        self.warm_start_min_samples = warm_start_min_samples
+        self.seed = seed
+        self._rng = np.random.default_rng(seed) if seed is not None else None
 
         # Reference buffer: stores reconstruction errors of stable data
         # deque with maxlen automatically evicts oldest entries when full
         self._buffer: deque = deque(maxlen=buffer_size)
+        self._has_completed_initial_warmup: bool = False
 
         # Tracking
         self.n_drifts_detected: int = 0
@@ -112,6 +141,15 @@ class DriftDetector:
         """True when buffer has reached its maximum capacity."""
         return len(self._buffer) >= self.buffer_size
 
+    @property
+    def is_ready(self) -> bool:
+        """True when the buffer has enough samples to run replicated T-tests."""
+        if self.warm_start_min_samples is not None:
+            return len(self._buffer) >= self.warm_start_min_samples
+        if self._has_completed_initial_warmup:
+            return len(self._buffer) >= max(self.sample_size, 2)
+        return self.is_buffer_full
+
     def update_buffer(self, errors: np.ndarray) -> None:
         """
         Add reconstruction errors from a new batch to the reference buffer.
@@ -126,6 +164,8 @@ class DriftDetector:
         """
         for error in errors:
             self._buffer.append(float(error))
+        if len(self._buffer) >= self.buffer_size:
+            self._has_completed_initial_warmup = True
 
     def reset_buffer(self) -> None:
         """
@@ -140,12 +180,12 @@ class DriftDetector:
         self, batch_errors: np.ndarray
     ) -> tuple[float, list]:
         """
-        Run r replicated one-sided T-tests comparing buffer vs batch errors.
+        Run r replicated T-tests comparing buffer vs batch errors.
 
         Each replication:
           1. Draw N random samples from the reference buffer B.
           2. Draw N random samples from the current batch errors L_n.
-          3. Run a two-sample T-test.
+          3. Run Welch's two-sample T-test.
           4. Record whether p-value < alpha (significant difference).
 
         Parameters
@@ -161,20 +201,28 @@ class DriftDetector:
         """
         buffer_arr = self.buffer_array
         p_values = []
+        chooser = self._rng.choice if self._rng is not None else np.random.choice
+        ttest_alt = "less" if self.alternative == "greater" else "two-sided"
 
         for _ in range(self.n_replications):
             # Randomly sample from buffer and from current batch
-            ref_sample = np.random.choice(
+            ref_sample = chooser(
                 buffer_arr, size=self.sample_size, replace=True
             )
-            batch_sample = np.random.choice(
-                batch_errors, size=min(self.sample_size, len(batch_errors)),
-                replace=True
+            batch_sample = chooser(
+                batch_errors,
+                size=min(self.sample_size, len(batch_errors)),
+                replace=True,
             )
 
-            # Two-sample T-test (two-sided: detects any distribution change)
-            _, p_val = stats.ttest_ind(ref_sample, batch_sample)
-            p_values.append(float(p_val))
+            # Welch's two-sample T-test (equal_var=False handles heteroscedastic errors)
+            _, p_val = stats.ttest_ind(
+                ref_sample,
+                batch_sample,
+                equal_var=False,
+                alternative=ttest_alt,
+            )
+            p_values.append(float(0.0 if np.isnan(p_val) else p_val))
 
         # Proportion of tests where null hypothesis (same distribution) rejected
         n_significant = sum(p < self.alpha for p in p_values)
@@ -202,7 +250,7 @@ class DriftDetector:
         reference_mean = float(np.mean(self._buffer)) if self._buffer else 0.0
 
         # Warm-up phase: fill buffer before running any tests
-        if not self.is_buffer_full:
+        if not self.is_ready:
             self.update_buffer(batch_errors)
             return DriftResult(
                 drift_detected=False,
@@ -213,6 +261,8 @@ class DriftDetector:
                 reference_error_mean=reference_mean,
             )
 
+        self._has_completed_initial_warmup = True
+
         # Run replicated T-tests
         severity, p_values = self._run_replicated_ttest(batch_errors)
 
@@ -221,9 +271,10 @@ class DriftDetector:
 
         if drift_detected:
             self.n_drifts_detected += 1
-            # Reset buffer — new distribution becomes the reference
-            self.reset_buffer()
-            self.update_buffer(batch_errors)
+            if self.reset_on_drift:
+                # Reset buffer — new distribution becomes the reference
+                self.reset_buffer()
+                self.update_buffer(batch_errors)
 
         return DriftResult(
             drift_detected=drift_detected,

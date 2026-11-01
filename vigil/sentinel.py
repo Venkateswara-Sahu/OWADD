@@ -23,7 +23,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from vigil.attribution import AttributionResult, DriftAttributor
+from vigil.attribution import ARRAY_2D_NDIM, AttributionResult, DriftAttributor
 from vigil.core.autoencoder import (
     Autoencoder,
     create_autoencoder_pair,
@@ -57,6 +57,7 @@ class SentinelResult:
     novelty_result : NoveltyResult
         Full novelty detection results.
     """
+
     chunk_id: int
     drift_detected: bool
     drift_severity: float
@@ -88,8 +89,8 @@ class SentinelResult:
         }
         if self.attribution:
             for i, feat in enumerate(self.attribution.top_features):
-                d[f"top_feature_{i+1}"] = feat["feature_name"]
-                d[f"top_feature_{i+1}_contribution"] = feat["contribution"]
+                d[f"top_feature_{i + 1}"] = feat["feature_name"]
+                d[f"top_feature_{i + 1}_contribution"] = feat["contribution"]
         return d
 
 
@@ -115,8 +116,16 @@ class Vigil:
         Samples per T-test replication. Default: 30.
     drift_threshold : float
         Drift severity threshold [0, 1]. Default: 0.3.
-    novelty_threshold : float
-        KDE density threshold for novel class classification. Default: 0.02.
+    novelty_threshold : float, optional
+        Fixed KDE density threshold for novel class classification. When
+        ``None`` (the default) the threshold is the 5th percentile of the
+        training density scores, so about 5% of in-distribution samples are
+        flagged novel by construction.
+    upper_tail_only : bool
+        When ``True``, only samples whose reconstruction error is above the
+        reference median can be flagged novel, matching Algorithm~1 of the
+        paper. Default: ``False``, which preserves the published streaming
+        numbers.
     top_k_features : int
         Number of top drifting features to report in attribution. Default: 5.
     feature_names : list of str, optional
@@ -125,6 +134,12 @@ class Vigil:
         Training epochs for initial offline phase. Default: 400.
     update_epochs : int
         Training epochs for incremental update after drift. Default: 50.
+    n_permutations : int
+        Number of pooled-window permutations when ``attribution_mode="calibrated"``.
+        Default: 200.
+    block_size : int
+        Contiguous row block size for block-permutation calibration when
+        ``attribution_mode="calibrated"``. Default: 1 (i.i.d. row permutation).
 
     Example
     -------
@@ -161,16 +176,33 @@ class Vigil:
         sample_size: int = 30,
         drift_threshold: float = 0.3,
         novelty_threshold: float | None = None,
+        upper_tail_only: bool = False,
         top_k_features: int = 5,
         feature_names: list | None = None,
         initial_epochs: int = 400,
         update_epochs: int = 50,
+        attribution_mode: str = "positive_delta",
+        adaptation_mode: str = "auto",
+        feature_groups: dict[str, tuple[int, ...]] | None = None,
+        n_permutations: int = 200,
+        block_size: int = 1,
+        seed: int | None = None,
     ):
+        if adaptation_mode not in ("auto", "frozen", "verified_only"):
+            raise ValueError(
+                "adaptation_mode must be 'auto', 'frozen', or 'verified_only'"
+            )
         self.n_features = n_features
         self.hidden_dim = hidden_dim
         self.initial_epochs = initial_epochs
         self.update_epochs = update_epochs
         self.feature_names = feature_names
+        self.attribution_mode = attribution_mode
+        self.adaptation_mode = adaptation_mode
+        self.feature_groups = feature_groups
+        self.n_permutations = n_permutations
+        self.block_size = block_size
+        self.seed = seed
 
         # Will be initialized in .fit()
         self._autoencoder_A: Autoencoder | None = None
@@ -183,13 +215,21 @@ class Vigil:
             n_replications=n_replications,
             sample_size=sample_size,
             drift_threshold=drift_threshold,
+            reset_on_drift=(adaptation_mode == "auto"),
+            seed=seed,
         )
         self._novelty_detector = NoveltyDetector(
             novelty_threshold=novelty_threshold,
+            upper_tail_only=upper_tail_only,
         )
         self._attributor = DriftAttributor(
             top_k=top_k_features,
             feature_names=feature_names,
+            mode=attribution_mode,
+            feature_groups=feature_groups,
+            n_permutations=n_permutations,
+            block_size=block_size,
+            seed=0 if seed is None else seed,
         )
 
         self._is_fitted: bool = False
@@ -225,23 +265,42 @@ class Vigil:
             self.n_features = initial_data.shape[1]
 
         if verbose:
-            print(f"[Vigil] Fitting on {len(initial_data)} samples, "
-                  f"{self.n_features} features...")
+            print(
+                f"[Vigil] Fitting on {len(initial_data)} samples, "
+                f"{self.n_features} features..."
+            )
 
-        # Create dual mirrored autoencoders
-        self._autoencoder_A, self._autoencoder_AKC = create_autoencoder_pair(
-            n_features=self.n_features,
-            hidden_dim=self.hidden_dim,
-        )
-
-        # Train both on initial data (they start identical)
-        if verbose:
-            n = self.initial_epochs
-            print(f"[Vigil] Training autoencoders ({n} epochs)...")
-        train_autoencoder(
-            self._autoencoder_A, initial_data,
-            epochs=self.initial_epochs, verbose=verbose
-        )
+        # Create and train dual mirrored autoencoders (deterministic if seed set)
+        if self.seed is not None:
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(self.seed)
+                self._autoencoder_A, self._autoencoder_AKC = create_autoencoder_pair(
+                    n_features=self.n_features,
+                    hidden_dim=self.hidden_dim,
+                )
+                if verbose:
+                    n = self.initial_epochs
+                    print(f"[Vigil] Training autoencoders ({n} epochs)...")
+                train_autoencoder(
+                    self._autoencoder_A,
+                    initial_data,
+                    epochs=self.initial_epochs,
+                    verbose=verbose,
+                )
+        else:
+            self._autoencoder_A, self._autoencoder_AKC = create_autoencoder_pair(
+                n_features=self.n_features,
+                hidden_dim=self.hidden_dim,
+            )
+            if verbose:
+                n = self.initial_epochs
+                print(f"[Vigil] Training autoencoders ({n} epochs)...")
+            train_autoencoder(
+                self._autoencoder_A,
+                initial_data,
+                epochs=self.initial_epochs,
+                verbose=verbose,
+            )
         # Mirror A_KC: copy weights from A after training
         self._autoencoder_AKC.load_state_dict(self._autoencoder_A.state_dict())
 
@@ -290,40 +349,66 @@ class Vigil:
             )
 
         self._chunk_counter += 1
-        X = torch.tensor(batch, dtype=torch.float32)
+        model_A = self._autoencoder_A
+        model_AKC = self._autoencoder_AKC
+        if model_A is None or model_AKC is None:  # pragma: no cover - fit() guard
+            raise RuntimeError("Vigil models are not initialised; call .fit() first")
+
+        # Accept DataFrames/lists and reject malformed batches here, where the
+        # error message can name the problem, instead of inside ``torch.tensor``.
+        arr = np.asarray(batch, dtype=np.float32)
+        if arr.ndim != ARRAY_2D_NDIM:
+            raise ValueError(
+                f"batch must be 2-D (n_samples, n_features), got shape {arr.shape}"
+            )
+        if not np.isfinite(arr).all():
+            raise ValueError("batch contains non-finite values (NaN or inf)")
+        if self.n_features is not None and arr.shape[1] != self.n_features:
+            raise ValueError(
+                f"batch has {arr.shape[1]} features, expected {self.n_features}"
+            )
+        X = torch.from_numpy(arr)
 
         # Step 1: Compute reconstruction errors using A (drift detection model)
-        errors_A = self._autoencoder_A.reconstruction_errors(X)
+        errors_A = model_A.reconstruction_errors(X)
 
         # Step 2: Detect drift via replicated T-test on errors_A
+        was_ready = self._drift_detector.is_ready
         drift_result = self._drift_detector.detect(errors_A)
 
         # Step 3: Compute reconstruction errors using A_KC (novelty model, frozen)
-        errors_AKC = self._autoencoder_AKC.reconstruction_errors(X)
+        errors_AKC = model_AKC.reconstruction_errors(X)
 
         # Step 4: Detect novel classes via KDE on errors_AKC
         novelty_result = self._novelty_detector.detect(errors_AKC)
 
-        # Step 5: If drift detected → incrementally update A + compute attribution
+        # Step 5: If drift detected → compute attribution and optionally adapt
         attribution = None
         if drift_result.drift_detected:
             # Compute feature attribution BEFORE updating the model
             if self._reference_data is not None:
                 attribution = self._attributor.attribute(
-                    model=self._autoencoder_A,
+                    model=model_A,
                     reference_data=self._reference_data,
-                    current_batch=batch,
+                    current_batch=arr,
                     feature_names=self.feature_names,
+                    mode=self.attribution_mode,
                 )
 
-            # Incrementally update A to adapt to new distribution
-            train_autoencoder(
-                self._autoencoder_A, batch,
-                epochs=self.update_epochs, verbose=False
-            )
-
-            # Update reference data for next attribution comparison
-            self._reference_data = batch.copy()
+            if self.adaptation_mode == "auto" and self.update_epochs > 0:
+                # Incrementally update A to adapt to new distribution
+                train_autoencoder(
+                    model_A, arr, epochs=self.update_epochs, verbose=False
+                )
+                # Synchronize buffer with post-update reconstruction errors
+                post_errors_A = model_A.reconstruction_errors(X)
+                self._drift_detector.reset_buffer()
+                self._drift_detector.update_buffer(post_errors_A)
+                # Update reference data for next attribution comparison
+                self._reference_data = arr.copy()
+        elif was_ready and self.adaptation_mode in ("frozen", "verified_only"):
+            # Stable batch (post-warmup): slide reference buffer with normal errors
+            self._drift_detector.update_buffer(errors_A)
 
         return SentinelResult(
             chunk_id=self._chunk_counter,

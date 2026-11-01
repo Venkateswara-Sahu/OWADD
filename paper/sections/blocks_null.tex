@@ -1,0 +1,25 @@
+\begin{table}[!htbp]
+\centering
+\caption{Block-permutation null on exchangeable and recorded data (family-wise rejection rate at $\alpha = 0.05$, 199 permutations, 300 trials per cell, $d = 20$, windows of 400 rows). A rate above the nominal $5\%$ means the permuted null is too optimistic; block size $1$ is the textbook permutation and larger blocks keep adjacent rows together. Pooled synthetic rows are i.i.d. by construction, so a rate that moves with block size there is Monte-Carlo noise; the recorded streams keep their order, so those rows are the measurement.}
+\label{tab:block-null}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Pool & block $1$ & block $10$ & block $25$ & block $50$ \\
+\midrule
+\multicolumn{5}{l}{\emph{nothing injected (nominal $5\%$)}} \\
+Gaussian (i.i.d.) & 3.3 & 3.3 & 3.7 & 3.3 \\
+Multivariate $t_3$ (i.i.d.) & 3.3 & 1.7 & 4.0 & 2.7 \\
+CICIDS Tuesday, recorded & 88.7 & 69.3 & 50.0 & 41.3 \\
+NSL-KDD, random order & 1.7 & 2.3 & 4.3 & 2.7 \\
+\midrule
+\multicolumn{5}{l}{\emph{one feature shifted by $+0.5\sigma$}} \\
+Gaussian (i.i.d.) & 98.7 & 99.3 & 99.0 & 98.3 \\
+Multivariate $t_3$ (i.i.d.) & 93.7 & 92.3 & 94.0 & 93.7 \\
+CICIDS Tuesday, recorded & 100.0 & 100.0 & 100.0 & 100.0 \\
+NSL-KDD, random order & 100.0 & 100.0 & 100.0 & 100.0 \\
+\bottomrule
+\end{tabular}}
+\end{table}

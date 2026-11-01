@@ -20,6 +20,7 @@ lib64/
 
 # Misc
 *.pdf
+!paper/figures/*.pdf
 *.txt
 !requirements*.txt
 
@@ -74,6 +75,12 @@ webserver_config.py
 artifacts/raw_results/
 artifacts/cache/
 artifacts/datasets/
+artifacts/prepared/
 !artifacts/manifests/
 !artifacts/summaries/
 !artifacts/figures/
+paper/*.aux
+paper/*.blg
+paper/*.out
+tmp/
+

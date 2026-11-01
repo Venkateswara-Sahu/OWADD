@@ -1,46 +1,51 @@
-# Vigil research status
+# Vigil Research Status
 
-Vigil is an engineering prototype with a reproducible evaluation record, not a
-proven novel or generally superior attribution method. No Vigil publication is
-claimed. The original public default is retained; named research variants are
-experimental.
+Vigil combines dual-autoencoder drift/novelty monitoring (`arXiv:2605.29834`) with a reproducible feature-level drift attribution benchmark, **Decomposed Copula-KS Attribution** (`Vigil(attribution_mode="decomposed")`), and **Permutation-Calibrated Edge-Peeling Attribution** (`Vigil(attribution_mode="calibrated")`).
 
-## Evidence and decision
+## Evidence Progression
 
-The [final decision report](superpowers/final-mechanism-decision-2026-09-28.md)
-records the 20-seed comparison of trained and untrained reconstruction attribution,
-squared-input change, KS and correlation baselines. It includes selected per-case
-results, paired uncertainty intervals, provenance hashes and limitations.
+1. **Phase I — Autoencoder Attribution Mechanism Study ([final-mechanism-decision-2026-09-28.md](superpowers/final-mechanism-decision-2026-09-28.md)):**
+   Across 20 seeds (50–69), 18 synthetic conditions, and 6 real CICIDS2017 flow conditions, we evaluated whether bottleneck autoencoder reconstruction-error rankings (`positive_delta`, `absolute_delta`, `standardized_delta`) outperform untrained controls and classical statistical baselines.
+   - **Key Empirical Finding:** Bottleneck autoencoders exhibit a sharp regime dichotomy: training substantially improves multi-feature dependency localization (`97.5%` vs `10.0%` untrained Recall@3 on `n=800, bg=0.3, delta=0.6`), but **degrades small univariate shift localization** (`32.5%` trained vs `57.5%` untrained vs `100.0%` KS on `independent/mean_0.5`) due to bottleneck pass-through and cross-feature reconstruction-error smearing. Conversely, univariate KS fails on dependency shifts (`2.5%–20.0%`), and raw Pearson correlation is **uncalibrated** on real flow records: on 500 genuine-null windows from the normal-only NSL-KDD pool the KS+Pearson hybrid rejects at `98.6%` and raw Pearson alone at `98.4%` against a nominal `5%` (`artifacts/runs/real-null-v1`), and the copula relational pathway rejects `59.0%`/`57.8%` of 500 CICIDS2017 Tuesday/held-out windows (`artifacts/runs/calibrated-study-v3`). The `17.5%` Recall@3 recorded on mean-shift rows sits near the uniform-random line (`3/d = 15.0%` for Recall@3 at `d=20`), since correlation is invariant to location.
 
-Training helped in some dependency conditions but hurt small-mean localization.
-The declared continuation criterion was not met. We stopped the general-superiority
-investigation rather than relabeling those mixed results as a successful method.
+2. **Phase II — Decomposed Copula-KS Attribution ([decomposed-copula-ks-study-2026-10-16.md](superpowers/decomposed-copula-ks-study-2026-10-16.md)):**
+   To resolve this regime dichotomy without per-window neural network retraining, we introduced `compute_decomposed_scores` (`Vigil(attribution_mode="decomposed")`), which combines:
+   - **Marginal pathway:** Bonferroni-scaled log-evidence from two-sample Kolmogorov-Smirnov tests, $-\log_{10}(\min(1, d \cdot p_{\text{KS}}))$.
+   - **Relational pathway:** Gaussian-Copula (van der Waerden rank-normal $\Phi^{-1}(\text{rank}/(N+1))$) Fisher-$z$ correlation shift with Bonferroni log-evidence $-\log_{10}(\min(1, 2\binom{d}{2} \cdot \Phi(-z_{\max}))) + 10^{-3}\text{RMS}(z_{\text{diff}})$.
+   - **40-Seed Result (20 Validation + 20 Held-Out Test Seeds):** Evaluated across 20 validation seeds (`50..69`, Tuesday CICIDS2017 flows) and 20 untouched held-out test seeds (`70..89`, Wednesday–Friday CICIDS2017 flows) in `experiments/decomposed_study.py`, `decomposed_copula_ks` achieves **100.0% Recall@3** across all dense univariate mean/scale shifts on real CICIDS2017 traffic (and **97.5%–100.0%** on synthetic univariate shifts, outperforming trained AE by `+80.0%` to `+95.0%` on real flows), **100.0% Recall@3** on all moderate-to-strong dependency shifts, and **65.0% (Val) / 55.0% (Test) Recall@3 with 1.000 MRR (100% Top-1 accuracy across all 40 seeds)** on real CICIDS2017 column permutations.
 
-The real-data experiments use controlled injections into CICIDS2017 development
-flow features. They are semi-synthetic, not held-out attack detection, causal
-identification or live deployment validation. Recall@3 measures recovery of
-injected feature indices, not attack recall.
+3. **Phase III — Streaming Detector & 5-Seed NSL-KDD + `river` Benchmark (`experiments/nsl_kdd_multiseed.py`):**
+   - Fixed post-drift warm-up blindness in `DriftDetector` (`reset_on_drift=True` previously disabled detection for $\lceil \text{buffer\_size} / \text{chunk\_size} \rceil$ chunks after every drift event).
+   - Fixed pre-adaptation vs. post-adaptation reference buffer desynchronization in `Vigil.detect()` and added non-adaptive frozen-reference `adaptation_mode="verified_only"` and `"frozen"` options.
+   - Across 5 seeds (`42..46`) on NSL-KDD, `Vigil` achieves **100.0 ± 0.0% precision**, **97.9 ± 1.9% F1** in `verified_only` mode (**89.9 ± 2.9% F1** in `auto` mode), **1.0-chunk delay**, and **96.7 ± 3.0% novel-class recall** (100.0% on Seed 42), outperforming untuned `river` ADWIN, KSWIN, and Page-Hinkley baselines on identical error streams ($\le 76.7\%$ F1). Because this 50-chunk schedule has 5 negative chunks (where an always-alarm rule scores `94.7%` F1) and resamples small rare classes (`warezmaster`: 20 rows), it serves as a state-machine continuity check rather than a multi-regime change-point benchmark.
 
-## Reproduction and provenance
+4. **Phase IV — Permutation-Calibrated Attribution (`Vigil(attribution_mode="calibrated")`, [calibrated-attribution-study-2026-10-24.md](superpowers/calibrated-attribution-study-2026-10-24.md)):**
+   The relational pathway's asymptotic null assumes a bivariate-normal joint copula and only Bonferroni-scales each family, so it rejects `59.0%` of genuine-null Tuesday windows and `57.8%` of held-out windows at nominal `5%` (`82.6%` on normal-only NSL-KDD). `compute_calibrated_scores` replaces the null with a pooled-label permutation max-statistic (Westfall–Young) over both families, splits `alpha/2` per family so the union is family-wise controlled by the union bound, and orders features by greedy peeling of the significant correlation edges.
+   - **Null calibration (`artifacts/runs/calibrated-study-v3`, 500 windows per population, `B=199`):** joint false-alarm rate `3.8%` Gaussian, `5.8%` zero-inflated/tied, `3.2%` t3, `4.4%` Tuesday, `3.2%` held-out, against `8.6% / 9.8% / 45.8% / 59.0% / 57.8%` for the published pathway (`3.4%` vs `82.6%` on 500 normal-only NSL-KDD windows in `artifacts/runs/real-null-v1`).
+   - **Localisation (20 seeds, `d=20`, `n=400`, 13 drifted conditions x 5 populations = 65 drifted cells, plus 5 null controls):** on two permuted columns, Recall@3 rises from `65.0%` to `95.0%` on both real pools (Holm `p` `0.0067` / `0.0027`), from `62.5%` to `95.0%` on Gaussian and `70.0%` to `92.5%` on t3; on five permuted columns `34.0%` to `58.0%` (Tuesday) and `31.0%` to `60.0%` (held-out). Calibration alone does **not** localise (max-edge `57.5%` vs `65.0%` published). Sparse sub-population shifts split by population: at 20% contaminated rows peeling reaches `95.0%`/`95.0%`/`90.0%` Recall@3 at detection `0.95`–`1.00` (real Tuesday/held-out/scale) against `60.0%`/`57.5%`/`67.5%` for the uncalibrated hybrid, while at 5% contamination peeling detects `0.35` vs `0.85`–`0.95`. Boundaries where a single-pathway baseline wins on the uncalibrated hybrid occur in `18` of `65` drifted localisation cells.
+   - **Cost of validity:** across the 65 drifted cells, family-wise detection averages `73.7%` for calibrated peeling against `82.1%` for the published hybrid (`88.0%` vs `91.1%` across the 45 dense drifted cells; `92.5%` vs `95.2%` across the 20 dense mean/scale cells; `41.5%` vs `61.8%` across the 20 sparse cells; if the 5 null cells are pooled in, the raw 70-cell averages are `68.8%` vs `79.1%`).
 
-Install the source with `pip install -e ".[dev,research]"` and run
-`python -m pytest tests/`. The experiment interface is `vigil-bench --help`.
-Follow the [frozen mechanism protocol](superpowers/final-mechanism-protocol.md)
-for the declared design and the final report for its exact execution checkpoint.
+## Reproduction and Provenance
 
-Raw datasets, prepared caches and per-run outputs are intentionally not distributed.
-Dataset acquisition and preparation are separate prerequisites; a source checkout
-alone does not reproduce the real-data results. Historical output paths in reports
-identify local provenance records, not downloadable artifacts. The reports retain
-compact results and hashes; do not claim that raw outputs are publicly available.
+Install from source with `pip install -e ".[dev,research]"` and run:
+- Unit and regression suite: `python -m pytest tests/`
+- Prepare CICIDS2017 matrices from the public archive: `python -m experiments.cli prepare --config experiments/configs/cicids2017.yaml --archive <CICIDS2017_improved.zip> --output artifacts/prepared/cicids2017-prepared-v1`
+- Frozen baseline mechanism screen: `python -m experiments.mechanism_screen --output artifacts/runs/final-mechanism-v1 --prepared <path-to-cicids2017-prepared-v1>`
+- Decomposed Copula-KS study (Validation split, seeds 50–69): `python -m experiments.decomposed_study --split validation --output artifacts/runs/decomposed-study-v1 --prepared <path-to-cicids2017-prepared-v1>`
+- Decomposed Copula-KS study (Held-Out Test split, seeds 70–89): `python -m experiments.decomposed_study --split test --output artifacts/runs/decomposed-study-heldout-v1 --prepared <path-to-cicids2017-prepared-v1>`
+- 5-Seed NSL-KDD + `river` streaming benchmark: `python -m experiments.nsl_kdd_multiseed`
+- Calibrated attribution study (`artifacts/runs/calibrated-study-v3`): `python -m experiments.calibrated_study --output artifacts/runs/calibrated-study-v3 --prepared <path-to-cicids2017-prepared-v1> --null-trials 500 --trials 20 --n-permutations 199` (add `--skip-localization` / `--skip-null` to split the two stages)
+- Calibration mechanism diagnostic: `python -m experiments.calibrated_diagnostics --output artifacts/runs/calibrated-diagnostics-v1`
+- Genuine-null false-alarm rates on the NSL-KDD normal pool (`artifacts/runs/real-null-v1`): `python -m experiments.real_null_calibration --output artifacts/runs/real-null-v1 --trials 500 --n-permutations 199`
+- Per-call latency of both pathways: `python -m experiments.calibrated_cost --d 20 --output artifacts/benchmarks/calibrated_cost.json` (and `--d 78 --output artifacts/benchmarks/calibrated_cost_d78.json`)
+- Paper tables from the artifact: `python paper/scripts/render_calibrated_tables.py --summary artifacts/runs/calibrated-study-v3/summary.json --out-prefix paper/sections/calibrated`
+- Detection-power curve for the permutation statistic (`artifacts/runs/calibrated-power-v1`, n=400): `python -m experiments.calibrated_power --output artifacts/runs/calibrated-power-v1 --trials 200`
+- Same curve at larger windows, for the sparse-subpopulation power question: `--output artifacts/runs/calibrated-power-w800 --trials 200 --window 800` and `--output artifacts/runs/calibrated-power-w1600 --trials 100 --window 1600` (measured: 5–20% of rows stays at 0.0% declared at all three window sizes; 50%-of-rows +0.5σ goes 30%→100% at n=800, and full-coverage +0.2σ goes 1%→95%→100% at n=1600)
+- Block-permutation null on exchangeable vs recorded-order windows (`artifacts/runs/calibrated-blocknull-v2`): `python -m experiments.calibrated_blocknull --output artifacts/runs/calibrated-blocknull-v2 --prepared <path-to-cicids2017-prepared-v1> --trials 300 --block-sizes 1,10,25,50 --nslkdd`. Measured: Tuesday recorded order 88.7/69.3/50.0/41.3% across block 1/10/25/50, i.i.d. pools 1.7–4.0%, NSL-KDD random order 1.7/2.3/4.3/2.7% (second real corpus), +0.5σ single-feature shift declared in 100% on both real pools (92.3–99.3% on synthetic pools).
+- Exchangeability table from that artifact: `python paper/scripts/render_blocknull_table.py --summary artifacts/runs/calibrated-blocknull-v2/summary.json --out paper/sections/blocks_null.tex`
 
-## Public claims
+## Scope & Interpretation Boundaries
 
-- Keep Vigil in the CV projects section as a package and evaluation project.
-- Describe API, Kafka, Airflow, MLflow and dashboard code as example integrations.
-- Do not reuse old demo precision or novel-class recall as validated performance.
-- Do not call feature scores causal explanations or percentages of input change.
-- Do not list the historical manuscript as an accepted or submitted publication.
-
-The manuscript in `paper/` and earlier research plans remain historical material;
-this status and the final decision supersede their optimistic claims.
+- The real-data attribution experiments on CICIDS2017 use controlled shift injections (`mean`, `std`, `permutation`) on reserved Tuesday validation and Wednesday–Friday held-out test flow windows standardized strictly by Monday training statistics. Recall@3 and MRR measure localization of injected feature indices, not end-to-end supervised intrusion classification or formal causal graph discovery.
+- Claims across `paper/` and `README*` were re-audited against stored JSON artifacts on 2026-11-01 (see also earlier triage in `docs/superpowers/pre-submission-audit-2026-10-25.md`).
+- Keep default `Vigil(attribution_mode="positive_delta")` for backward API compatibility, pass `Vigil(attribution_mode="decomposed", adaptation_mode="verified_only")` for sub-10ms per-window attribution, or pass `Vigil(attribution_mode="calibrated", n_permutations=199, seed=42)` (`0.30–0.38 s` median at `d=20`, `1.00–1.33 s` at `d=78`, `n=400`, `B=199` on CPU) for drift-alert-time family-wise calibrated attribution on exchangeable window draws.

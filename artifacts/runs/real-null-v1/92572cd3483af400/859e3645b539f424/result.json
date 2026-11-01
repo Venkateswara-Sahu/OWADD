@@ -1,0 +1,294 @@
+{
+  "config": {
+    "chunk_size": 200,
+    "dataset": "nsl_kdd_normal_null",
+    "method": "null_calibration",
+    "params": {
+      "alpha": 0.05,
+      "block_rows": 800,
+      "features": [
+        "duration",
+        "src_bytes",
+        "dst_bytes",
+        "urgent",
+        "hot",
+        "num_failed_logins",
+        "logged_in",
+        "num_compromised",
+        "root_shell",
+        "su_attempted",
+        "num_root",
+        "num_file_creations",
+        "num_shells",
+        "num_access_files",
+        "count",
+        "srv_count",
+        "serror_rate",
+        "rerror_rate",
+        "same_srv_rate"
+      ],
+      "label": "normal",
+      "n_permutations": 49,
+      "trials": 8,
+      "window": 400
+    },
+    "seed": 0,
+    "split": "test",
+    "tolerance_chunks": 2
+  },
+  "metadata": {
+    "stage": "real_null"
+  },
+  "metrics": {
+    "null": {
+      "alpha": 0.05,
+      "blocks": {
+        "block_rows": 800,
+        "distinct": 4,
+        "per_block": {
+          "1": 1,
+          "4": 3,
+          "5": 1,
+          "6": 3
+        }
+      },
+      "d": 19,
+      "methods": {
+        "copula_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.40927543031016883,
+            0.9285207872478909
+          ],
+          "ci95_block": [
+            0.4,
+            1.0
+          ],
+          "fwer": 0.75,
+          "rejections": 6,
+          "trials": 8
+        },
+        "decomposed_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.40927543031016883,
+            0.9285207872478909
+          ],
+          "ci95_block": [
+            0.4,
+            1.0
+          ],
+          "fwer": 0.75,
+          "rejections": 6,
+          "trials": 8
+        },
+        "decomposed_bonferroni": {
+          "alpha": 0.05,
+          "ci95": [
+            0.40927543031016883,
+            0.9285207872478909
+          ],
+          "ci95_block": [
+            0.4,
+            1.0
+          ],
+          "fwer": 0.75,
+          "rejections": 6,
+          "trials": 8
+        },
+        "ks_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.0,
+            0.32440756488388023
+          ],
+          "ci95_block": [
+            0.0,
+            0.0
+          ],
+          "fwer": 0.0,
+          "rejections": 0,
+          "trials": 8
+        },
+        "ks_pearson_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.6755924351161198,
+            1.0
+          ],
+          "ci95_block": [
+            1.0,
+            1.0
+          ],
+          "fwer": 1.0,
+          "rejections": 8,
+          "trials": 8
+        },
+        "maxedge_joint": {
+          "alpha": 0.05,
+          "ci95": [
+            0.02241749145005667,
+            0.4708881822128535
+          ],
+          "ci95_block": [
+            0.0,
+            0.3
+          ],
+          "fwer": 0.125,
+          "rejections": 1,
+          "trials": 8
+        },
+        "pearson_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.6755924351161198,
+            1.0
+          ],
+          "ci95_block": [
+            1.0,
+            1.0
+          ],
+          "fwer": 1.0,
+          "rejections": 8,
+          "trials": 8
+        },
+        "peeling_joint": {
+          "alpha": 0.05,
+          "ci95": [
+            0.02241749145005667,
+            0.4708881822128535
+          ],
+          "ci95_block": [
+            0.0,
+            0.3
+          ],
+          "fwer": 0.125,
+          "rejections": 1,
+          "trials": 8
+        },
+        "peeling_rank_transform": {
+          "alpha": 0.05,
+          "ci95": [
+            0.02241749145005667,
+            0.4708881822128535
+          ],
+          "ci95_block": [
+            0.0,
+            0.3
+          ],
+          "fwer": 0.125,
+          "rejections": 1,
+          "trials": 8
+        },
+        "peeling_separate": {
+          "alpha": 0.05,
+          "ci95": [
+            0.071479212752109,
+            0.5907245696898311
+          ],
+          "ci95_block": [
+            0.0,
+            0.6666666666666666
+          ],
+          "fwer": 0.25,
+          "rejections": 2,
+          "trials": 8
+        }
+      },
+      "n_permutations": 49,
+      "pool": {
+        "dropped_constant": [
+          "wrong_fragment"
+        ],
+        "features": [
+          "duration",
+          "src_bytes",
+          "dst_bytes",
+          "urgent",
+          "hot",
+          "num_failed_logins",
+          "logged_in",
+          "num_compromised",
+          "root_shell",
+          "su_attempted",
+          "num_root",
+          "num_file_creations",
+          "num_shells",
+          "num_access_files",
+          "count",
+          "srv_count",
+          "serror_rate",
+          "rerror_rate",
+          "same_srv_rate"
+        ],
+        "heavy_tie_features": [
+          "duration",
+          "hot",
+          "logged_in",
+          "num_access_files",
+          "num_compromised",
+          "num_failed_logins",
+          "num_file_creations",
+          "num_root",
+          "num_shells",
+          "rerror_rate",
+          "root_shell",
+          "same_srv_rate",
+          "serror_rate",
+          "su_attempted",
+          "urgent"
+        ],
+        "mean_modal_mass": 0.7985646146162966,
+        "modal_mass": {
+          "count": 0.3071885719376921,
+          "dst_bytes": 0.16271921357824867,
+          "duration": 0.881843695707052,
+          "hot": 0.9813492122418068,
+          "logged_in": 0.7106455013884145,
+          "num_access_files": 0.9946393834548506,
+          "num_compromised": 0.9944760405684332,
+          "num_failed_logins": 0.9989902439748749,
+          "num_file_creations": 0.9962431136124021,
+          "num_root": 0.9906449074142821,
+          "num_shells": 0.9994208752208841,
+          "rerror_rate": 0.9525266174658094,
+          "root_shell": 0.9979656385964392,
+          "same_srv_rate": 0.9410480673566666,
+          "serror_rate": 0.9673314227165407,
+          "src_bytes": 0.05071054155591524,
+          "srv_count": 0.24624682595072986,
+          "su_attempted": 0.9988269010884576,
+          "urgent": 0.999910903880136
+        },
+        "n_rows": 67343,
+        "source": "KDDTrain+.txt:normal"
+      },
+      "seconds_per_trial": 0.1150850500002889,
+      "trials": 8,
+      "window": 400
+    }
+  },
+  "provenance": {
+    "captured_at_utc": "2026-10-24T12:01:52.730178+00:00",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "dataset_checksums": {
+      "C:\\Users\\91961\\Documents\\Internship apply works\\OWADD\\data\\raw\\KDDTrain+.txt": "1b86d2f957b33082081bba410fe129b475efebcc13c9014c3f447c8271aadf95"
+    },
+    "dependency_versions": {
+      "numpy": "2.4.6",
+      "pandas": "3.1.0",
+      "pyyaml": "6.0.3",
+      "river": "0.26.1",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.17.1",
+      "torch": "2.14.1"
+    },
+    "git_commit": "40818505e5b24ba10796093d2c3397a9839182c7",
+    "git_dirty": true,
+    "platform": "Windows-10-10.0.26300-SP0",
+    "python_version": "3.11.9",
+    "source_tree_hash": "daca5ed8d9ac1793b37173176e729196d0ed092dd1656be0bad56a22bc0812dc",
+    "total_ram_bytes": 16831926272
+  },
+  "result_id": ""
+}

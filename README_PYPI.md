@@ -1,91 +1,51 @@
-# Vigil
+# Vigil (`vigil-drift`)
 
-Unsupervised drift-monitoring prototype and reproducible attribution evaluation.
+**Unsupervised Drift & Novelty Monitoring for Tabular Network Streams with Decomposed & Permutation-Calibrated Copula-KS Attribution.**
 
-[PyPI](https://pypi.org/project/vigil-drift/) · [Project site](https://venkateswara-sahu.github.io/OWADD/) · [Research evidence](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md)
+[PyPI (`vigil-drift`)](https://pypi.org/project/vigil-drift/) · [Project Site](https://venkateswara-sahu.github.io/OWADD/) · [GitHub Repository](https://github.com/Venkateswara-Sahu/OWADD) · [Research Status](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md) · [Calibrated Attribution Study](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/calibrated-attribution-study-2026-10-24.md)
 
-## Status
+---
 
-Vigil combines autoencoder reconstruction errors, statistical drift tests, KDE novelty scores and feature-error rankings with example monitoring integrations. It is an engineering/research prototype, not a validated intrusion-detection system or a production-readiness claim.
+## Overview
 
-The September 2026 investigation did **not** establish a generally superior new attribution method. Trained reconstruction rankings helped in some dependency-shift conditions but underperformed simple KS/correlation baselines in other conditions. The original default remains unchanged; research variants are experimental.
+**Vigil** extends the dual-autoencoder open-world drift and novelty detection framework ([arXiv:2605.29834](https://arxiv.org/abs/2605.29834)) with **Decomposed Copula-KS Attribution** (`Vigil(attribution_mode="decomposed")`) and **Permutation-Calibrated Edge-Peeling Attribution** (`Vigil(attribution_mode="calibrated")`), label-free feature localization engines for non-stationary, heavy-tailed network traffic streams.
 
-There is no Vigil publication claimed here. The old manuscript in `paper/` is an unpublished, superseded draft. Historical NSL-KDD demo numbers are not current evidence of attack-detection performance.
+### Key Empirical Findings & Methodological Solution
 
-## Quick start
+1. **Autoencoder Attribution Dichotomy ([`final-mechanism-decision-2026-09-28.md`](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-decision-2026-09-28.md)):** Across 40 seeds on synthetic and CICIDS2017 network flows, training a bottleneck autoencoder substantially improves localization of multi-feature dependency shifts (`10.0%` $\to$ `97.5%` Recall@3), but degrades small univariate mean-shift localization (`57.5%` untrained $\to$ `32.5%` trained vs. `100.0%` KS) due to bottleneck pass-through and cross-feature decoder error smearing.
+2. **Decomposed & Permutation-Calibrated Copula-KS Attribution ([`calibrated-attribution-study-2026-10-24.md`](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/calibrated-attribution-study-2026-10-24.md)):** Fast `decomposed` mode (`7.6 ms` median at `d=20, n=400`) pairs Bonferroni-scaled Kolmogorov-Smirnov marginal log-evidence with within-window van der Waerden rank-normal ($\Phi^{-1}(\mathrm{rank}/(N+1))$) Fisher-$z$ relational shifts, achieving **100.0% Recall@3** on dense CICIDS2017 univariate shifts and **1.000 MRR** on column permutations. Because asymptotic Fisher-$z$ thresholds over-reject on zero-inflated, tied, and non-Gaussian copula telemetry (`57.8%–59.0%` false-alarm rate on unchanged CICIDS2017 windows, `82.6%` on normal-only NSL-KDD), opt-in `calibrated` mode (`0.30–0.38 s` median at `d=20, n=400, B=199`) applies pooled Westfall–Young max-statistic permutation calibration with an $\alpha/2$ family split and greedy edge peeling—restoring FWER to **3.2%–5.8%** (`3.4%` on NSL-KDD) on exchangeable windows while lifting two-feature permutation Recall@3 from **65.0% to 95.0%**.
+3. **Continuous Streaming Detection (`Vigil`):** Fixes post-drift warm-up blindness and pre-adaptation error buffer desynchronization, achieving **100.0 ± 0.0% precision**, **97.9 ± 1.9% F1** (`verified_only`, frozen reference) and **89.9 ± 2.9% F1** (`auto`), and a **1.0-chunk detection delay** on a 5-seed, 50-chunk NSL-KDD continuity check (note: 5 negative chunks; an always-alarm rule scores `94.7%` F1).
 
-Install the published package:
+---
+
+## Quick Start
 
 ```bash
 pip install vigil-drift
 ```
 
-The published package may lag this repository's research tooling. For current source and tests:
-
-```bash
-git clone https://github.com/Venkateswara-Sahu/OWADD.git
-cd OWADD
-pip install -e ".[dev,research]"
-python -m pytest tests/ -v --cov=vigil
-```
-
-Supply preprocessed finite numeric arrays with consistent feature order; fit preprocessing on training data only.
-
 ```python
 from vigil import Vigil
 
-v = Vigil(feature_names=feature_names)
-v.fit(baseline_data)
+sentinel = Vigil(
+    feature_names=feature_names,
+    top_k_features=5,
+    attribution_mode="calibrated",   # 'calibrated', 'decomposed', 'positive_delta', 'absolute_delta', 'standardized_delta'
+    adaptation_mode="verified_only", # 'verified_only' / 'frozen' (non-adaptive), or 'auto'
+    n_permutations=199,
+    seed=42,
+)
+sentinel.fit(baseline_normal_data)
 
 for batch in stream:
-    result = v.detect(batch)
-    if result.attribution is not None:
-        for feature in result.attribution.top_features:
-            print(feature["feature_name"], feature["contribution"])
+    result = sentinel.detect(batch)
+    if result.drift_detected and result.attribution:
+        for feat in result.attribution.top_features:
+            print(f"{feat['feature_name']} ({feat['drift_type']}): {feat['contribution']:.1%}")
 ```
 
-Contributions are normalized reconstruction-error scores, not percentages of input change, attack probabilities or causal explanations. Detection has configurable thresholds; label-free inference does not remove the need for calibration and labeled evaluation.
-
-## Implemented components
-
-| Component | Scope |
-| --- | --- |
-| Dual autoencoders, replicated tests, KDE | Experimental drift/novelty monitoring |
-| `DriftAttributor` | Per-feature reconstruction-error ranking |
-| FastAPI, Kafka, MLflow | Example serving, ingestion and experiment tracking |
-| Airflow DAGs | Example monitoring/retraining orchestration |
-| Streamlit and Docker Compose | Local demonstration stack |
-| `experiments/` | Versioned protocols, data audits, baselines and reproducible comparisons |
-
-These integrations do not establish security hardening, throughput guarantees or reliable autonomous adaptation.
-
-## Research evidence
-
-Read the [research status](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/research-status.md) and [final decision report](https://github.com/Venkateswara-Sahu/OWADD/blob/main/docs/superpowers/final-mechanism-decision-2026-09-28.md).
-
-The final bounded study covered 20 seeds, nine ranking methods, 18 synthetic conditions and six controlled real-data conditions. Real-data tests injected shifts into reserved CICIDS2017 development flow features; they were not held-out attack detection or live chronological deployment tests. Results and limitations are reported together rather than collapsed into a winning headline.
-
-Raw datasets, prepared caches and per-run outputs are not distributed. Protocols, source, tests and compact reports are retained. Reproduction requires obtaining the specified data separately.
-
-## Example integrations
-
-Run from a source checkout after installing the appropriate extras:
-
-```bash
-pip install -e ".[api,dashboard,mlflow,kafka]"
-uvicorn api.app:app --host 127.0.0.1 --port 8000
-# In a separate terminal:
-streamlit run dashboard/app.py
-```
-
-Other examples live in `kafka_pipeline/`, `airflow/dags/` and the Compose configuration. Review their configuration before running; do not expose demo services directly to an untrusted network.
-
-## Attribution and historical material
-
-The original project cites *Open World Autoencoding Drift Detection with Novel Class Recognition in Tabular Non-stationary Data Streams*, arXiv:2605.29834, as its algorithmic basis. That reference is not a Vigil publication or evidence that Vigil's additions are novel. Research novelty remains unestablished.
-
-Historical plans record decisions at their time of writing; the final decision supersedes earlier optimistic hypotheses. Legacy demo scripts and manuscript figures are not the current evaluation protocol.
+*Scope & Boundaries:* Real-data attribution benchmarks on CICIDS2017 inject controlled shifts into reserved Tuesday validation and Wednesday–Friday held-out test flows standardized strictly by Monday training statistics. Recall@3 and MRR measure localization of perturbed feature indices rather than supervised intrusion classification or causal discovery, and permutation $p$-values require exchangeable rows within a window.
 
 ## License
 
-MIT. See LICENSE.
+MIT License. See [LICENSE](https://github.com/Venkateswara-Sahu/OWADD/blob/main/LICENSE).

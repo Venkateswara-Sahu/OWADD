@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from data.nsl_kdd_loader import load_nsl_kdd
+from data.nsl_kdd_loader import get_nsl_kdd_feature_groups, load_nsl_kdd
 from data.stream_simulator import StreamSimulator
 from vigil import Vigil
 
@@ -27,8 +27,9 @@ DRIFT_AFTER_CHUNK  = 5
 NOVELTY_AFTER      = 20
 NOVELTY_PROPORTION = 0.25
 BUFFER_SIZE        = 600    # smaller buffer = more sensitive to change
-DRIFT_THRESHOLD    = 0.10   # 10% of T-tests must reject H0 (paper: 0.1-0.3)
+DRIFT_THRESHOLD    = 0.30   # 30% of T-tests must reject H0 (Vigil default: 0.3)
 TOP_K              = 5
+
 NOVELTY_THRESHOLD  = 0.05   # flag novelty if >5% samples are novel-class
 SEED               = 42
 
@@ -41,10 +42,11 @@ def section(title):
     divider("=")
 
 # ── Load ────────────────────────────────────────────────────────────────────────
-section("Loading NSL-KDD")
-X_train, y_train, feature_names = load_nsl_kdd("train")
+section("Loading NSL-KDD (Leakage-Free Normal-Traffic Scaling)")
+X_train, y_train, feature_names = load_nsl_kdd("train", fit_normal_only=True)
+feature_groups = get_nsl_kdd_feature_groups(feature_names)
 print(f"  Training samples  : {len(X_train):,}")
-print(f"  Features (encoded): {len(feature_names)}")
+print(f"  Features (encoded): {len(feature_names)} ({len(feature_groups)} logical groups)")
 print(f"  Unique classes    : {len(set(y_train))}  "
       f"({len(set(y_train)-{'normal'})} attack types)")
 
@@ -62,6 +64,10 @@ vigil = Vigil(
     drift_threshold=DRIFT_THRESHOLD,
     initial_epochs=400,
     update_epochs=50,
+    attribution_mode="decomposed",
+    adaptation_mode="auto",
+    feature_groups=feature_groups,
+    seed=SEED,
 )
 
 t0 = time.time()
@@ -83,6 +89,7 @@ sim = StreamSimulator(
 
 results = []
 feature_drift_totals = {}
+feature_drift_types = {}
 attack_stats = {}
 
 print(f"\n  {'Chunk':>5}  {'Phase':<8}  {'Dominant':<16}  "
@@ -118,6 +125,10 @@ for chunk in sim.stream(n_chunks=N_CHUNKS):
         for f in result.attribution.top_features:
             fn = f["feature_name"]
             feature_drift_totals[fn] = feature_drift_totals.get(fn, 0.0) + f["contribution"]
+            dtype = f.get("drift_type", "marginal")
+            feature_drift_types.setdefault(fn, {})[dtype] = (
+                feature_drift_types.get(fn, {}).get(dtype, 0) + 1
+            )
 
     cls = chunk.dominant_class
     if cls not in attack_stats:
@@ -128,6 +139,7 @@ for chunk in sim.stream(n_chunks=N_CHUNKS):
 
     print(f"  {cid:>5}  {phase:<8}  {chunk.dominant_class:<16}  "
           f"{gt_label:>5}  {det_str:<14}  {severity:>8.2f}  {novelty:>8.1%}")
+
 
 # ── Drift Metrics ───────────────────────────────────────────────────────────────
 section("Drift Detection Metrics")
@@ -190,10 +202,13 @@ for cls in sorted(attack_stats):
 section(f"Top {TOP_K} Features by Total Drift Contribution")
 sorted_feats = sorted(feature_drift_totals.items(), key=lambda x: x[1], reverse=True)
 total = sum(v for _, v in sorted_feats) or 1.0
-print(f"\n  {'Feature':<40}  {'Contribution':>12}  {'Share':>6}")
+print(f"\n  {'Feature':<32}  {'Dominant Type':<14}  {'Contribution':>12}  {'Share':>6}")
 divider()
 for fname, score in sorted_feats[:TOP_K]:
-    print(f"  {fname:<40}  {score:>12.4f}  {score/total:>6.1%}")
+    counts = feature_drift_types.get(fname, {})
+    dom_type = max(counts, key=counts.get) if counts else "marginal"
+    print(f"  {fname:<32}  {dom_type:<14}  {score:>12.4f}  {score/total:>6.1%}")
+
 
 # ── README Summary ───────────────────────────────────────────────────────────────
 section("README / Portfolio Summary")

@@ -1,0 +1,374 @@
+{
+  "config": {
+    "chunk_size": 200,
+    "dataset": "nsl_kdd_normal_null",
+    "method": "null_calibration",
+    "params": {
+      "alpha": 0.05,
+      "block_rows": 800,
+      "features": [
+        "duration",
+        "src_bytes",
+        "dst_bytes",
+        "urgent",
+        "hot",
+        "num_failed_logins",
+        "logged_in",
+        "num_compromised",
+        "root_shell",
+        "su_attempted",
+        "num_root",
+        "num_file_creations",
+        "num_shells",
+        "num_access_files",
+        "count",
+        "srv_count",
+        "serror_rate",
+        "rerror_rate",
+        "same_srv_rate"
+      ],
+      "label": "normal",
+      "n_permutations": 199,
+      "trials": 500,
+      "window": 400
+    },
+    "seed": 0,
+    "split": "test",
+    "tolerance_chunks": 2
+  },
+  "metadata": {
+    "stage": "real_null"
+  },
+  "metrics": {
+    "null": {
+      "alpha": 0.05,
+      "blocks": {
+        "block_rows": 800,
+        "distinct": 84,
+        "per_block": {
+          "0": 4,
+          "1": 9,
+          "10": 8,
+          "11": 5,
+          "12": 5,
+          "13": 7,
+          "14": 3,
+          "15": 8,
+          "16": 7,
+          "17": 5,
+          "18": 3,
+          "19": 9,
+          "2": 1,
+          "20": 2,
+          "21": 3,
+          "22": 7,
+          "23": 12,
+          "24": 6,
+          "25": 5,
+          "26": 5,
+          "27": 5,
+          "28": 6,
+          "29": 4,
+          "3": 5,
+          "30": 5,
+          "31": 7,
+          "32": 5,
+          "33": 5,
+          "34": 4,
+          "35": 5,
+          "36": 2,
+          "37": 5,
+          "38": 6,
+          "39": 7,
+          "4": 13,
+          "40": 7,
+          "41": 6,
+          "42": 5,
+          "43": 5,
+          "44": 6,
+          "45": 5,
+          "46": 5,
+          "47": 7,
+          "48": 5,
+          "49": 5,
+          "5": 10,
+          "50": 5,
+          "51": 6,
+          "52": 9,
+          "53": 7,
+          "54": 5,
+          "55": 10,
+          "56": 7,
+          "57": 5,
+          "58": 7,
+          "59": 4,
+          "6": 6,
+          "60": 7,
+          "61": 4,
+          "62": 9,
+          "63": 6,
+          "64": 4,
+          "65": 3,
+          "66": 3,
+          "67": 4,
+          "68": 13,
+          "69": 6,
+          "7": 4,
+          "70": 6,
+          "71": 10,
+          "72": 6,
+          "73": 7,
+          "74": 6,
+          "75": 6,
+          "76": 6,
+          "77": 4,
+          "78": 4,
+          "79": 9,
+          "8": 6,
+          "80": 5,
+          "81": 6,
+          "82": 8,
+          "83": 6,
+          "9": 7
+        }
+      },
+      "d": 19,
+      "methods": {
+        "copula_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.7860548114500956,
+            0.8530351132926648
+          ],
+          "ci95_block": [
+            0.7610419766716268,
+            0.880324977028831
+          ],
+          "fwer": 0.822,
+          "rejections": 411,
+          "trials": 500
+        },
+        "decomposed_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.7903184021001322,
+            0.8567105279189358
+          ],
+          "ci95_block": [
+            0.7652859960552268,
+            0.8837243636696576
+          ],
+          "fwer": 0.826,
+          "rejections": 413,
+          "trials": 500
+        },
+        "decomposed_bonferroni": {
+          "alpha": 0.05,
+          "ci95": [
+            0.7669425076136408,
+            0.8364218933857356
+          ],
+          "ci95_block": [
+            0.7392015628087599,
+            0.8658674349513632
+          ],
+          "fwer": 0.804,
+          "rejections": 402,
+          "trials": 500
+        },
+        "ks_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.0010976305226827934,
+            0.014465715215177033
+          ],
+          "ci95_block": [
+            0.0,
+            0.010330578512396695
+          ],
+          "fwer": 0.004,
+          "rejections": 2,
+          "trials": 500
+        },
+        "ks_pearson_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.9713869308622147,
+            0.9932022102091564
+          ],
+          "ci95_block": [
+            0.9609306256469979,
+            1.0
+          ],
+          "fwer": 0.986,
+          "rejections": 493,
+          "trials": 500
+        },
+        "maxedge_joint": {
+          "alpha": 0.05,
+          "ci95": [
+            0.02133451980853219,
+            0.053771365501634506
+          ],
+          "ci95_block": [
+            0.020075331145656183,
+            0.04878297153643633
+          ],
+          "fwer": 0.034,
+          "rejections": 17,
+          "trials": 500
+        },
+        "pearson_asymptotic": {
+          "alpha": 0.05,
+          "ci95": [
+            0.9687488914666058,
+            0.9918707469666117
+          ],
+          "ci95_block": [
+            0.9563392765388964,
+            1.0
+          ],
+          "fwer": 0.984,
+          "rejections": 492,
+          "trials": 500
+        },
+        "peeling_joint": {
+          "alpha": 0.05,
+          "ci95": [
+            0.02133451980853219,
+            0.053771365501634506
+          ],
+          "ci95_block": [
+            0.020075331145656183,
+            0.04878297153643633
+          ],
+          "fwer": 0.034,
+          "rejections": 17,
+          "trials": 500
+        },
+        "peeling_rank_transform": {
+          "alpha": 0.05,
+          "ci95": [
+            0.024460118055830385,
+            0.05858477253064388
+          ],
+          "ci95_block": [
+            0.02263287298598033,
+            0.05296770672829994
+          ],
+          "fwer": 0.038,
+          "rejections": 19,
+          "trials": 500
+        },
+        "peeling_separate": {
+          "alpha": 0.05,
+          "ci95": [
+            0.06447314240360771,
+            0.11383981149855754
+          ],
+          "ci95_block": [
+            0.06387216443026356,
+            0.10959193110224841
+          ],
+          "fwer": 0.086,
+          "rejections": 43,
+          "trials": 500
+        }
+      },
+      "n_permutations": 199,
+      "pool": {
+        "dropped_constant": [
+          "wrong_fragment"
+        ],
+        "features": [
+          "duration",
+          "src_bytes",
+          "dst_bytes",
+          "urgent",
+          "hot",
+          "num_failed_logins",
+          "logged_in",
+          "num_compromised",
+          "root_shell",
+          "su_attempted",
+          "num_root",
+          "num_file_creations",
+          "num_shells",
+          "num_access_files",
+          "count",
+          "srv_count",
+          "serror_rate",
+          "rerror_rate",
+          "same_srv_rate"
+        ],
+        "heavy_tie_features": [
+          "duration",
+          "hot",
+          "logged_in",
+          "num_access_files",
+          "num_compromised",
+          "num_failed_logins",
+          "num_file_creations",
+          "num_root",
+          "num_shells",
+          "rerror_rate",
+          "root_shell",
+          "same_srv_rate",
+          "serror_rate",
+          "su_attempted",
+          "urgent"
+        ],
+        "mean_modal_mass": 0.7985646146162966,
+        "modal_mass": {
+          "count": 0.3071885719376921,
+          "dst_bytes": 0.16271921357824867,
+          "duration": 0.881843695707052,
+          "hot": 0.9813492122418068,
+          "logged_in": 0.7106455013884145,
+          "num_access_files": 0.9946393834548506,
+          "num_compromised": 0.9944760405684332,
+          "num_failed_logins": 0.9989902439748749,
+          "num_file_creations": 0.9962431136124021,
+          "num_root": 0.9906449074142821,
+          "num_shells": 0.9994208752208841,
+          "rerror_rate": 0.9525266174658094,
+          "root_shell": 0.9979656385964392,
+          "same_srv_rate": 0.9410480673566666,
+          "serror_rate": 0.9673314227165407,
+          "src_bytes": 0.05071054155591524,
+          "srv_count": 0.24624682595072986,
+          "su_attempted": 0.9988269010884576,
+          "urgent": 0.999910903880136
+        },
+        "n_rows": 67343,
+        "source": "KDDTrain+.txt:normal"
+      },
+      "seconds_per_trial": 0.4171840971999991,
+      "trials": 500,
+      "window": 400
+    }
+  },
+  "provenance": {
+    "captured_at_utc": "2026-10-24T12:05:58.622143+00:00",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "dataset_checksums": {
+      "C:\\Users\\91961\\Documents\\Internship apply works\\OWADD\\data\\raw\\KDDTrain+.txt": "1b86d2f957b33082081bba410fe129b475efebcc13c9014c3f447c8271aadf95"
+    },
+    "dependency_versions": {
+      "numpy": "2.4.6",
+      "pandas": "3.1.0",
+      "pyyaml": "6.0.3",
+      "river": "0.26.1",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.17.1",
+      "torch": "2.14.1"
+    },
+    "git_commit": "40818505e5b24ba10796093d2c3397a9839182c7",
+    "git_dirty": true,
+    "platform": "Windows-10-10.0.26300-SP0",
+    "python_version": "3.11.9",
+    "source_tree_hash": "77a9e9f6a403be9c46dcee34260dcfe3cacf57c0add5d7bd42087b555390e7e1",
+    "total_ram_bytes": 16831926272
+  },
+  "result_id": ""
+}

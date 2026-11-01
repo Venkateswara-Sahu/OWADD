@@ -1,0 +1,177 @@
+{
+  "alpha": 0.05,
+  "datasets": {
+    "multivariate_t3": {
+      "alpha": 0.05,
+      "bins": {
+        "25-50%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        },
+        "50-75%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        },
+        "<25%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        },
+        ">75%": {
+          "analytic_rate": 0.0044736842105263155,
+          "n_edges": 3800,
+          "permutation_rate": 0.0002631578947368421
+        }
+      },
+      "family_reject_rate": {
+        "analytic": 0.5,
+        "permutation": 0.05
+      },
+      "median_unique_fraction": 1.0,
+      "seeds": 20,
+      "top_edges": {
+        "mean_analytic_p": 0.3851353413110313,
+        "mean_min_unique": 1.0,
+        "mean_permutation_p": 0.7430000000000001,
+        "n": 100
+      }
+    },
+    "real_heldout": {
+      "alpha": 0.05,
+      "bins": {
+        "25-50%": {
+          "analytic_rate": 0.0020222446916076846,
+          "n_edges": 1978,
+          "permutation_rate": 0.0
+        },
+        "50-75%": {
+          "analytic_rate": 0.002680965147453083,
+          "n_edges": 373,
+          "permutation_rate": 0.0
+        },
+        "<25%": {
+          "analytic_rate": 0.012942191544434857,
+          "n_edges": 1159,
+          "permutation_rate": 0.0008628127696289905
+        },
+        ">75%": {
+          "analytic_rate": 0.0,
+          "n_edges": 290,
+          "permutation_rate": 0.0
+        }
+      },
+      "family_reject_rate": {
+        "analytic": 0.7,
+        "permutation": 0.05
+      },
+      "median_unique_fraction": 0.455,
+      "seeds": 20,
+      "top_edges": {
+        "mean_analytic_p": 0.6809547727868318,
+        "mean_min_unique": 0.311025,
+        "mean_permutation_p": 0.8152500000000003,
+        "n": 100
+      }
+    },
+    "real_tuesday": {
+      "alpha": 0.05,
+      "bins": {
+        "25-50%": {
+          "analytic_rate": 0.00322234156820623,
+          "n_edges": 1862,
+          "permutation_rate": 0.0
+        },
+        "50-75%": {
+          "analytic_rate": 0.0,
+          "n_edges": 265,
+          "permutation_rate": 0.0
+        },
+        "<25%": {
+          "analytic_rate": 0.006456241032998565,
+          "n_edges": 1394,
+          "permutation_rate": 0.0
+        },
+        ">75%": {
+          "analytic_rate": 0.043010752688172046,
+          "n_edges": 279,
+          "permutation_rate": 0.0035842293906810036
+        }
+      },
+      "family_reject_rate": {
+        "analytic": 0.75,
+        "permutation": 0.05
+      },
+      "median_unique_fraction": 0.40625,
+      "seeds": 20,
+      "top_edges": {
+        "mean_analytic_p": 0.4909689298358951,
+        "mean_min_unique": 0.349175,
+        "mean_permutation_p": 0.7466499999999999,
+        "n": 100
+      }
+    },
+    "zero_inflated_tied": {
+      "alpha": 0.05,
+      "bins": {
+        "25-50%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        },
+        "50-75%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        },
+        "<25%": {
+          "analytic_rate": 0.0007894736842105263,
+          "n_edges": 3800,
+          "permutation_rate": 0.0002631578947368421
+        },
+        ">75%": {
+          "analytic_rate": null,
+          "n_edges": 0,
+          "permutation_rate": null
+        }
+      },
+      "family_reject_rate": {
+        "analytic": 0.15,
+        "permutation": 0.05
+      },
+      "median_unique_fraction": 0.1475,
+      "seeds": 20,
+      "top_edges": {
+        "mean_analytic_p": 0.8273908516126143,
+        "mean_min_unique": 0.13672499999999999,
+        "mean_permutation_p": 0.82545,
+        "n": 100
+      }
+    }
+  },
+  "diagnostic_version": 2,
+  "n_permutations": 199,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ]
+}
