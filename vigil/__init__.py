@@ -1,8 +1,9 @@
 """
 Vigil
 =====
-Experimental unsupervised drift monitoring for network traffic streams.
-Feature rankings describe reconstruction-error changes, not causal shifts.
+Unsupervised drift and novelty monitoring for tabular network traffic streams,
+with Decomposed and Permutation-Calibrated Copula-KS feature attribution.
+Feature rankings localize marginal and relational shifts, not causal interventions.
 
 Based on: "Open World Autoencoding Drift Detection with Novel Class Recognition
 in Tabular Non-stationary Data Streams" (arXiv:2605.29834)
@@ -34,7 +35,7 @@ from vigil.sentinel import Vigil
 # Keep Vigil as an alias so nothing breaks during transition
 Vigil = Vigil
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__  = "Venkateswara Sahu"
 __paper__   = "arXiv:2605.29834"
 
