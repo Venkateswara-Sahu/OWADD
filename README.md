@@ -117,7 +117,7 @@ for batch in stream:
 | `vigil/` | Dual-autoencoder (`A` & `A_KC`), replicated Welch T-test detector (with post-drift warm-up continuity), KDE novelty detector, and `DriftAttributor` (`calibrated`, `decomposed` + reconstruction modes) |
 | `experiments/` | Provenance-verified evaluation suite (`calibrated_study.py`, `real_null_calibration.py`, `calibrated_blocknull.py`, `decomposed_study.py`, dataset split & leakage audits) |
 | `api/` | Thread-safe FastAPI microservice (`/fit`, `/detect`, `/status`, `/health`) |
-| `dashboard/` | Streamlit Security Operations Center (SOC) live stream dashboard with `marginal` vs `relational` attribution badges |
+| `dashboard/` | Streamlit Signal Observatory: live NSL-KDD stream monitor, interactive Edge-Peeling attribution sandbox, and provenance-locked benchmark explorer |
 | `kafka_pipeline/` & `airflow/` | Example streaming consumer/producer and automated retraining DAG with quality gate |
 
 ```bash

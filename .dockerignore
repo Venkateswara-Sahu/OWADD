@@ -3,12 +3,12 @@
 .gitignore
 .gitattributes
 
-# Virtual environment
+# Virtual environments
 .venv
 venv
 env
 
-# Python cache
+# Python cache & build outputs
 __pycache__
 *.pyc
 *.pyo
@@ -17,25 +17,44 @@ __pycache__
 *.egg-info
 dist/
 build/
+tmp/
 
-# Raw data (large files — mounted as volume instead)
+# Raw datasets & tracking volumes (mounted at runtime)
 data/raw/
-
-# MLflow runs (mounted as volume)
 mlruns/
+mlartifacts/
+airflow/logs/
 
-# Tests
+# Tests & paper sources (not needed in runtime images)
 tests/
+paper/
+docs/
 
-# Docs
-README.md
-*.pdf
-*.txt
+# Exclude multi-GB research cache/shards, keep only compact summary JSONs for Tab 3
+artifacts/*
+!artifacts/benchmarks/
+artifacts/benchmarks/*
+!artifacts/benchmarks/*.json
+!artifacts/runs/
+artifacts/runs/*
+!artifacts/runs/calibrated-study-v3/
+artifacts/runs/calibrated-study-v3/*
+!artifacts/runs/calibrated-study-v3/summary.json
+!artifacts/runs/calibrated-blocknull-v2/
+artifacts/runs/calibrated-blocknull-v2/*
+!artifacts/runs/calibrated-blocknull-v2/summary.json
+!artifacts/runs/calibrated-power-v1/
+artifacts/runs/calibrated-power-v1/*
+!artifacts/runs/calibrated-power-v1/power.json
+!artifacts/runs/calibrated-power-w800/
+artifacts/runs/calibrated-power-w800/*
+!artifacts/runs/calibrated-power-w800/power.json
+!artifacts/runs/calibrated-power-w1600/
+artifacts/runs/calibrated-power-w1600/*
+!artifacts/runs/calibrated-power-w1600/power.json
 
-# IDE
+# IDE & OS
 .vscode
 .idea
-
-# OS
 .DS_Store
 Thumbs.db

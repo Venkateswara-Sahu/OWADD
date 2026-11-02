@@ -1,1 +1,1 @@
-﻿"""Kafka package for Vigil stream ingestion."""
+"""Kafka streaming producer and consumer examples for Vigil."""

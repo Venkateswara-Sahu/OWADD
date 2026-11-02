@@ -586,11 +586,7 @@ def prepare_stream_engine(cfg: StreamConfig) -> None:
         novelty_proportion=0.25,
         seed=42,
     )
-    chunks = []
-    for idx, chunk in enumerate(sim.stream()):
-        if idx >= cfg.n_total:
-            break
-        chunks.append(chunk)
+    chunks = list(sim.stream(n_chunks=cfg.n_total))
 
     fresh = default_stream_state()
     fresh["config_signature"] = sig

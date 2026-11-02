@@ -35,7 +35,7 @@ dependencies = [
 api = ["fastapi>=0.100.0", "uvicorn>=0.22.0", "pydantic>=2.0.0"]
 dashboard = ["streamlit>=1.25.0", "plotly>=5.15.0"]
 mlflow = ["mlflow>=2.5.0"]
-kafka = ["confluent-kafka>=2.2.0"]
+kafka = ["kafka-python-ng>=2.2.0"]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",

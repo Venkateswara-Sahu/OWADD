@@ -3,23 +3,23 @@ FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package metadata first (cache-friendly — only re-installs if deps change)
-COPY pyproject.toml ./
-COPY owadd_sentinel/ ./owadd_sentinel/
+# Copy package metadata & source modules defined in pyproject.toml
+COPY pyproject.toml README_PYPI.md LICENSE ./
+COPY vigil/ ./vigil/
+COPY data/ ./data/
+COPY experiments/ ./experiments/
 
-# Install core + api dependencies
+# Install core + API + MLflow dependencies
 RUN pip install --no-cache-dir -e ".[api,mlflow]"
 
-# ─── Stage 2: API service ─────────────────────────────────────────────────────
+# ─── Stage 2: FastAPI REST service ───────────────────────────────────────────
 FROM base AS api
 
 COPY api/ ./api/
-COPY data/ ./data/
 
 EXPOSE 8000
 
@@ -28,13 +28,13 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 
 CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# ─── Stage 3: Streamlit dashboard ─────────────────────────────────────────────
+# ─── Stage 3: Streamlit Signal Observatory ───────────────────────────────────
 FROM base AS dashboard
 
-RUN pip install --no-cache-dir streamlit plotly
+RUN pip install --no-cache-dir -e ".[dashboard]"
 
 COPY dashboard/ ./dashboard/
-COPY data/ ./data/
+COPY artifacts/ ./artifacts/
 
 EXPOSE 8501
 
